@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>英语四六级高频词背诵</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-shape shape-a"></div>
+    <div class="bg-shape shape-b"></div>
+
+    <main class="container">
+      <header class="hero">
+        <div class="top-row">
+          <div>
+            <p class="badge">CET 学习站</p>
+            <h1>英语四六级高频词背诵</h1>
+            <p>账号登录后背词，自动记录到你的专属学习档案。</p>
+          </div>
+          <div class="account-box">
+            <p id="user-info" class="muted">未登录</p>
+            <div class="account-actions">
+              <a id="vocab-link" class="link-btn hidden" href="/vocab.html">词汇表</a>
+              <a id="admin-link" class="link-btn hidden" href="/admin.html">后台管理</a>
+              <button id="logout-btn" class="secondary hidden">退出登录</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section id="auth-panel" class="panel" aria-label="账号登录">
+        <div class="segment" role="tablist" aria-label="登录注册切换">
+          <button id="tab-login" class="segment-btn active" role="tab" aria-selected="true">登录</button>
+          <button id="tab-register" class="segment-btn" role="tab" aria-selected="false">注册</button>
+        </div>
+
+        <form id="login-form" class="auth-form">
+          <label>
+            用户名
+            <input type="text" name="username" autocomplete="username" required />
+          </label>
+          <label>
+            密码
+            <input type="password" name="password" autocomplete="current-password" required />
+          </label>
+          <button class="primary" type="submit">登录</button>
+        </form>
+
+        <form id="register-form" class="auth-form hidden">
+          <label>
+            用户名（3-20位：字母/数字/下划线）
+            <input type="text" name="username" autocomplete="username" required />
+          </label>
+          <label>
+            密码（至少6位）
+            <input type="password" name="password" autocomplete="new-password" required />
+          </label>
+          <button class="primary" type="submit">注册并登录</button>
+        </form>
+
+        <p id="auth-msg" class="hint"></p>
+      </section>
+
+      <section id="app-panel" class="hidden">
+        <section class="panel" aria-label="等级选择">
+          <div class="segment" role="tablist" aria-label="四六级切换">
+            <button id="btn-cet4" class="segment-btn active" role="tab" aria-selected="true">四级（CET-4）</button>
+            <button id="btn-cet6" class="segment-btn" role="tab" aria-selected="false">六级（CET-6）</button>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="背词区域">
+          <div class="section-title-row">
+            <h2>高频单词背诵</h2>
+            <p id="progress-text" class="muted"></p>
+          </div>
+          <div class="mode-row">
+            <p class="mode-label">背词模式</p>
+            <div class="segment mini" role="tablist" aria-label="背词模式切换">
+              <button id="order-sequential" class="segment-btn active" role="tab" aria-selected="true">
+                顺序
+              </button>
+              <button id="order-random" class="segment-btn" role="tab" aria-selected="false">随机</button>
+            </div>
+          </div>
+
+          <article class="word-card">
+            <p class="level-tag" id="word-level">CET-4</p>
+            <h3 id="word-text">word</h3>
+            <p id="word-phonetic" class="phonetic">/wɜːd/</p>
+            <p id="word-meaning" class="meaning">词义</p>
+
+            <div class="action-row">
+              <button id="remember-btn" class="primary">记住 +1</button>
+              <button id="next-btn" class="secondary">下一个</button>
+            </div>
+
+            <p id="remember-hint" class="hint">你还没有记过这个词</p>
+          </article>
+
+          <details class="list-panel">
+            <summary>查看当前等级高频词列表</summary>
+            <ul id="word-list" class="word-list"></ul>
+          </details>
+        </section>
+
+        <section class="panel" aria-label="默写训练区域">
+          <div class="section-title-row">
+            <h2>翻译默写训练</h2>
+            <p id="quiz-stats" class="muted">已答 0 题，正确 0 题，正确率 0%</p>
+          </div>
+          <div class="mode-row">
+            <p class="mode-label">训练模式</p>
+            <div class="segment mini" role="tablist" aria-label="默写模式切换">
+              <button id="quiz-mode-cn-en" class="segment-btn active" role="tab" aria-selected="true">
+                中译英
+              </button>
+              <button id="quiz-mode-en-cn" class="segment-btn" role="tab" aria-selected="false">英译中</button>
+            </div>
+          </div>
+
+          <article class="quiz-card">
+            <p id="quiz-mode-tip" class="level-tag">请根据中文释义写英文单词</p>
+            <p id="quiz-question" class="quiz-question">题目</p>
+            <p id="quiz-sub" class="muted"></p>
+            <div class="quiz-input-row">
+              <input id="quiz-input" type="text" placeholder="输入答案后点击提交" />
+              <button id="quiz-submit" class="primary" type="button">提交答案</button>
+              <button id="quiz-next" class="secondary" type="button">换一题</button>
+            </div>
+            <div class="action-row quiz-actions">
+              <button id="quiz-dont-know" class="danger" type="button">我不会</button>
+              <button id="quiz-remember-after-show" class="primary hidden" type="button">
+                我记住了 +1
+              </button>
+            </div>
+            <p id="quiz-answer" class="quiz-answer hidden"></p>
+            <p id="quiz-feedback" class="hint">答对后会自动计入记住次数和成功默写次数。</p>
+          </article>
+        </section>
+
+        <section class="panel" aria-label="我的背诵记录">
+          <div class="section-title-row">
+            <h2>我的单词背诵</h2>
+            <button id="clear-btn" class="danger">清空记录</button>
+          </div>
+          <div class="stats" id="stats"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>等级</th>
+                  <th>单词</th>
+                  <th>音标</th>
+                  <th>释义</th>
+                  <th>记过次数</th>
+                  <th>最近一次</th>
+                </tr>
+              </thead>
+              <tbody id="records-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel" aria-label="我的默写成功记录">
+          <div class="section-title-row">
+            <h2>成功默写次数</h2>
+          </div>
+          <div class="stats" id="dictation-stats"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>等级</th>
+                  <th>单词</th>
+                  <th>音标</th>
+                  <th>释义</th>
+                  <th>成功默写次数</th>
+                  <th>最近一次</th>
+                </tr>
+              </thead>
+              <tbody id="dictation-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>

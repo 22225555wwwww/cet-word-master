@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>英语四六级高频词背诵</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-shape shape-a"></div>
+    <div class="bg-shape shape-b"></div>
+
+    <main class="container">
+      <header class="hero">
+        <p class="badge">CET 学习站</p>
+        <h1>英语四六级高频词背诵</h1>
+        <p>分级记忆，自动记录你记过的单词和记忆次数。</p>
+      </header>
+
+      <section class="panel" aria-label="等级选择">
+        <div class="segment" role="tablist" aria-label="四六级切换">
+          <button id="btn-cet4" class="segment-btn active" role="tab" aria-selected="true">四级（CET-4）</button>
+          <button id="btn-cet6" class="segment-btn" role="tab" aria-selected="false">六级（CET-6）</button>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="背词区域">
+        <div class="section-title-row">
+          <h2>高频单词背诵</h2>
+          <p id="progress-text" class="muted"></p>
+        </div>
+
+        <article class="word-card" id="word-card">
+          <p class="level-tag" id="word-level">CET-4</p>
+          <h3 id="word-text">word</h3>
+          <p id="word-phonetic" class="phonetic">/wɜːd/</p>
+          <p id="word-meaning" class="meaning">词义</p>
+
+          <div class="action-row">
+            <button id="remember-btn" class="primary">记住 +1</button>
+            <button id="next-btn" class="secondary">下一个</button>
+          </div>
+
+          <p id="remember-hint" class="hint">你还没有记过这个词</p>
+        </article>
+
+        <details class="list-panel">
+          <summary>查看当前等级高频词列表</summary>
+          <ul id="word-list" class="word-list"></ul>
+        </details>
+      </section>
+
+      <section class="panel" aria-label="我的背诵记录">
+        <div class="section-title-row">
+          <h2>我的单词背诵</h2>
+          <button id="clear-btn" class="danger">清空记录</button>
+        </div>
+        <div class="stats" id="stats"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>等级</th>
+                <th>单词</th>
+                <th>释义</th>
+                <th>记过次数</th>
+                <th>最近一次</th>
+              </tr>
+            </thead>
+            <tbody id="records-body"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>

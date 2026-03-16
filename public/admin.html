@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>后台管理 - CET 学习站</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-shape shape-a"></div>
+    <div class="bg-shape shape-b"></div>
+
+    <main class="container">
+      <header class="hero">
+        <div class="top-row">
+          <div>
+            <p class="badge">Admin</p>
+            <h1>后台管理系统</h1>
+            <p>管理用户角色、词库和学习统计。</p>
+          </div>
+          <div class="account-box">
+            <p id="admin-user" class="muted">校验中...</p>
+            <div class="account-actions">
+              <a class="link-btn" href="/index.html">返回学习页</a>
+              <button id="logout-btn" class="secondary">退出登录</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section id="deny-panel" class="panel hidden">
+        <h2>无权限访问</h2>
+        <p class="hint">你不是管理员，无法进入后台。</p>
+      </section>
+
+      <section id="admin-panels" class="hidden">
+        <section class="panel">
+          <div class="section-title-row">
+            <h2>系统概览</h2>
+            <button id="refresh-overview" class="secondary">刷新</button>
+          </div>
+          <div id="overview-stats" class="stats"></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>热门单词</th>
+                  <th>等级</th>
+                  <th>总记忆次数</th>
+                </tr>
+              </thead>
+              <tbody id="hot-words-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title-row">
+            <h2>用户管理</h2>
+            <button id="refresh-users" class="secondary">刷新</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>用户名</th>
+                  <th>角色</th>
+                  <th>已背单词</th>
+                  <th>总记忆次数</th>
+                  <th>创建时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="users-body"></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-title-row">
+            <h2>词库管理</h2>
+            <div class="inline-actions">
+              <select id="filter-level">
+                <option value="ALL">全部</option>
+                <option value="CET4">仅四级</option>
+                <option value="CET6">仅六级</option>
+              </select>
+              <button id="refresh-words" class="secondary">刷新</button>
+            </div>
+          </div>
+
+          <form id="add-word-form" class="grid-form">
+            <label>
+              等级
+              <select name="level" required>
+                <option value="CET4">CET-4</option>
+                <option value="CET6">CET-6</option>
+              </select>
+            </label>
+            <label>
+              单词
+              <input name="word" required maxlength="50" />
+            </label>
+            <label>
+              音标
+              <input name="phonetic" maxlength="100" />
+            </label>
+            <label>
+              释义
+              <input name="meaning" required maxlength="200" />
+            </label>
+            <button class="primary" type="submit">新增单词</button>
+          </form>
+
+          <p id="words-msg" class="hint"></p>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>等级</th>
+                  <th>单词</th>
+                  <th>音标</th>
+                  <th>释义</th>
+                  <th>创建时间</th>
+                  <th>操作</th>
+                </tr>
+              </thead>
+              <tbody id="words-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="admin.js"></script>
+  </body>
+</html>
