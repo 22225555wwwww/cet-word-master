@@ -648,7 +648,7 @@ app.post("/api/admin/import-words", requireAdmin, (req, res) => {
       for (let i = 0; i < words.length; i += 1) {
         const item = words[i];
         const isHigh = i < coreSize ? 1 : 0;
-        upsert.run(item.word, item.phonetic, item.meaning, isHigh);
+        upsert.run(level, item.word, item.phonetic, item.meaning, isHigh);
       }
     });
 
