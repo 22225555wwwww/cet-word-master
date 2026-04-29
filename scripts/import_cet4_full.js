@@ -10,6 +10,8 @@ const dbPath = path.join(dataDir, "app.db");
 const sourcePath = path.resolve(process.argv[2] || path.join(projectRoot, "data", "CET4_full.txt"));
 const coreSize = Number(process.argv[3] || 2000);
 
+fs.mkdirSync(dataDir, { recursive: true });
+
 if (!fs.existsSync(sourcePath)) {
   console.error(`词表文件不存在: ${sourcePath}`);
   process.exit(1);
