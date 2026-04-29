@@ -751,34 +751,13 @@ function nextQuizQuestion() {
     return;
   }
 
-  // Animate quiz card transition
-  const quizCard = document.querySelector(".quiz-card");
-  if (quizCard) {
-    quizCard.style.transition = "opacity 0.2s ease, transform 0.2s ease";
-    quizCard.style.opacity = "0.4";
-    quizCard.style.transform = "scale(0.98)";
-  }
-
-  setTimeout(() => {
-    const nextId = pickRandomWordId(state.quiz.currentWordId, quizWords);
-    state.quiz.currentWordId = nextId;
-    state.quiz.answerRevealed = false;
-    els.quizInput.value = "";
-    setQuizFeedback("已切换新题目。", "info");
-    renderQuizCard();
-
-    if (quizCard) {
-      requestAnimationFrame(() => {
-        quizCard.style.opacity = "1";
-        quizCard.style.transform = "scale(1)";
-        setTimeout(() => {
-          quizCard.style.transition = "";
-          quizCard.style.opacity = "";
-          quizCard.style.transform = "";
-        }, 250);
-      });
-    }
-  }, 200);
+  const nextId = pickRandomWordId(state.quiz.currentWordId, quizWords);
+  state.quiz.currentWordId = nextId;
+  state.quiz.answerRevealed = false;
+  els.quizInput.value = "";
+  setQuizFeedback("已切换新题目。", "info");
+  renderQuizCard();
+  els.quizInput.focus();
 }
 
 async function submitQuizAnswer() {

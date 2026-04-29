@@ -5,11 +5,7 @@
 (function () {
   'use strict';
 
-  // ===== Custom Cursor =====
-  const dot = document.createElement('div');
-  dot.id = 'cursor-dot';
-  document.body.appendChild(dot);
-
+  // ===== Simplified Custom Cursor =====
   const ring = document.createElement('div');
   ring.id = 'cursor-ring';
   document.body.appendChild(ring);
@@ -20,14 +16,12 @@
   document.addEventListener('mousemove', (e) => {
     mouseX = e.clientX;
     mouseY = e.clientY;
-    dot.style.left = mouseX + 'px';
-    dot.style.top = mouseY + 'px';
   });
 
   // Smooth ring follow
   function animateRing() {
-    ringX += (mouseX - ringX) * 0.15;
-    ringY += (mouseY - ringY) * 0.15;
+    ringX += (mouseX - ringX) * 0.18;
+    ringY += (mouseY - ringY) * 0.18;
     ring.style.left = ringX + 'px';
     ring.style.top = ringY + 'px';
     requestAnimationFrame(animateRing);
@@ -35,7 +29,7 @@
   animateRing();
 
   // Expand on interactive elements
-  const interactiveSelectors = 'button, a, input, select, textarea, .segment-btn, .link-btn, [data-tooltip], summary';
+  const interactiveSelectors = 'button, a, input, select, textarea, .segment-btn, .link-btn, summary';
 
   function bindCursorEffects() {
     document.querySelectorAll(interactiveSelectors).forEach((el) => {
@@ -45,17 +39,11 @@
   }
   bindCursorEffects();
 
-  // Click effect
-  document.addEventListener('mousedown', () => ring.classList.add('click'));
-  document.addEventListener('mouseup', () => ring.classList.remove('click'));
-
   // Hide cursor when leaving window
   document.addEventListener('mouseleave', () => {
-    dot.style.opacity = '0';
     ring.style.opacity = '0';
   });
   document.addEventListener('mouseenter', () => {
-    dot.style.opacity = '1';
     ring.style.opacity = '1';
   });
 
@@ -96,8 +84,8 @@
     });
   });
 
-  // ===== Tilt Card Effect =====
-  document.querySelectorAll('.word-card, .quiz-card').forEach((card) => {
+  // ===== Tilt Card Effect (skip quiz card for better input UX) =====
+  document.querySelectorAll('.word-card').forEach((card) => {
     card.addEventListener('mousemove', (e) => {
       const rect = card.getBoundingClientRect();
       const x = (e.clientX - rect.left) / rect.width - 0.5;
@@ -205,20 +193,11 @@
   }
   drawParticles();
 
-  // ===== Scroll Reveal =====
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('page-enter');
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.1 }
-  );
-
-  document.querySelectorAll('.panel').forEach((el) => observer.observe(el));
+  // ===== Initial Load Animation (no scroll re-trigger) =====
+  document.querySelectorAll('.panel').forEach((el, i) => {
+    el.classList.add('panel-init');
+    el.style.animationDelay = (i * 0.06) + 's';
+  });
 
   // ===== Re-bind after DOM changes =====
   const mutObserver = new MutationObserver(() => {

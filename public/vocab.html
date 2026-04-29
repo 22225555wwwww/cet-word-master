@@ -11,6 +11,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="effects.css" />
   </head>
   <body>
     <div class="bg-shape shape-a"></div>
@@ -36,7 +37,8 @@
       </header>
 
       <section class="panel" aria-label="等级选择">
-        <div class="segment" role="tablist" aria-label="四六级切换">
+        <div class="segment" role="tablist" aria-label="四六级切换" id="vocab-level-segment">
+          <div class="slider" id="vocab-level-slider"></div>
           <button id="level-cet4" class="segment-btn active" role="tab" aria-selected="true">四级（CET-4）</button>
           <button id="level-cet6" class="segment-btn" role="tab" aria-selected="false">六级（CET-6）</button>
         </div>
@@ -87,6 +89,7 @@
       </section>
     </main>
 
+    <script src="effects.js"></script>
     <script src="vocab.js"></script>
   </body>
 </html>

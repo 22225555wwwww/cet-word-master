@@ -2,6 +2,21 @@
    Premium UI Effects & Animations
    ============================================ */
 
+/* ===== Disable heavy effects in quiz/input areas ===== */
+.quiz-card,
+.quiz-card * {
+  cursor: auto !important;
+}
+
+.quiz-card::after {
+  display: none !important;
+}
+
+.quiz-card:hover {
+  transform: none !important;
+  box-shadow: var(--shadow-sm) !important;
+}
+
 /* ===== Page View Transitions ===== */
 .view-container {
   position: relative;
@@ -269,42 +284,38 @@
   }
 }
 
-/* ===== Custom Cursor ===== */
-#cursor-dot {
-  position: fixed;
-  width: 6px; height: 6px;
-  background: #2563eb;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99999;
-  transform: translate(-50%, -50%);
-  transition: width 0.15s, height 0.15s, background 0.15s;
-  mix-blend-mode: normal;
-}
-
+/* ===== Simplified Custom Cursor ===== */
 #cursor-ring {
   position: fixed;
-  width: 36px; height: 36px;
-  border: 1.5px solid rgba(37, 99, 235, 0.35);
+  width: 28px; height: 28px;
+  border: 1.5px solid rgba(37, 99, 235, 0.3);
   border-radius: 50%;
   pointer-events: none;
   z-index: 99998;
   transform: translate(-50%, -50%);
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              height 0.3s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.3s,
-              background 0.3s;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s,
+              opacity 0.25s;
 }
 
 #cursor-ring.expand {
-  width: 56px; height: 56px;
+  width: 42px; height: 42px;
   border-color: rgba(37, 99, 235, 0.5);
-  background: rgba(37, 99, 235, 0.04);
 }
 
-#cursor-ring.click {
-  width: 28px; height: 28px;
-  border-color: rgba(37, 99, 235, 0.6);
+/* ===== Disable heavy effects in quiz/input areas ===== */
+.quiz-card,
+.quiz-card *,
+.auth-form,
+.auth-form input {
+  cursor: auto !important;
+}
+
+.quiz-card .tilt-card,
+.quiz-card .ripple,
+.quiz-card .magnetic {
+  transform: none !important;
 }
 
 /* ===== Magnetic Button Effect ===== */

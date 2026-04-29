@@ -118,7 +118,6 @@ body {
   margin-top: 16px;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  animation: panel-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
   transition: box-shadow var(--transition), transform var(--transition);
 }
 
@@ -324,9 +323,8 @@ h2 {
 }
 
 .quiz-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-  border-color: rgba(37, 99, 235, 0.18);
+  transform: none;
+  box-shadow: var(--shadow-sm);
 }
 
 .quiz-question {
@@ -653,11 +651,11 @@ tr:hover td {
   }
 }
 
-.panel:nth-child(1) { animation-delay: 0s; }
-.panel:nth-child(2) { animation-delay: 0.06s; }
-.panel:nth-child(3) { animation-delay: 0.12s; }
-.panel:nth-child(4) { animation-delay: 0.18s; }
-.panel:nth-child(5) { animation-delay: 0.24s; }
+.panel-init:nth-child(1) { animation-delay: 0s; }
+.panel-init:nth-child(2) { animation-delay: 0.06s; }
+.panel-init:nth-child(3) { animation-delay: 0.12s; }
+.panel-init:nth-child(4) { animation-delay: 0.18s; }
+.panel-init:nth-child(5) { animation-delay: 0.24s; }
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
