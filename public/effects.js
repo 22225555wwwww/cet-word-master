@@ -5,46 +5,72 @@
 (function () {
   'use strict';
 
-  // ===== Simplified Custom Cursor =====
-  const ring = document.createElement('div');
-  ring.id = 'cursor-ring';
-  document.body.appendChild(ring);
+  // ===== Gradient Blob Cursor =====
+  const blob = document.createElement('div');
+  blob.id = 'cursor-blob';
+  document.body.appendChild(blob);
 
   let mouseX = -100, mouseY = -100;
-  let ringX = -100, ringY = -100;
+  let blobX = -100, blobY = -100;
 
   document.addEventListener('mousemove', (e) => {
     mouseX = e.clientX;
     mouseY = e.clientY;
   });
 
-  // Smooth ring follow
-  function animateRing() {
-    ringX += (mouseX - ringX) * 0.18;
-    ringY += (mouseY - ringY) * 0.18;
-    ring.style.left = ringX + 'px';
-    ring.style.top = ringY + 'px';
-    requestAnimationFrame(animateRing);
+  // Smooth blob follow with easing
+  function animateBlob() {
+    blobX += (mouseX - blobX) * 0.12;
+    blobY += (mouseY - blobY) * 0.12;
+    blob.style.left = blobX + 'px';
+    blob.style.top = blobY + 'px';
+    requestAnimationFrame(animateBlob);
   }
-  animateRing();
+  animateBlob();
 
-  // Expand on interactive elements
-  const interactiveSelectors = 'button, a, input, select, textarea, .segment-btn, .link-btn, summary';
-
+  // Context-aware cursor states
   function bindCursorEffects() {
-    document.querySelectorAll(interactiveSelectors).forEach((el) => {
-      el.addEventListener('mouseenter', () => ring.classList.add('expand'));
-      el.addEventListener('mouseleave', () => ring.classList.remove('expand'));
+    // Interactive elements (links, selects, etc.)
+    document.querySelectorAll('a, select, summary, .link-btn').forEach((el) => {
+      el.addEventListener('mouseenter', () => {
+        blob.classList.add('on-interactive');
+        blob.classList.remove('on-button', 'on-danger');
+      });
+      el.addEventListener('mouseleave', () => {
+        blob.classList.remove('on-interactive');
+      });
+    });
+
+    // Buttons (primary, secondary)
+    document.querySelectorAll('button:not(.danger)').forEach((el) => {
+      el.addEventListener('mouseenter', () => {
+        blob.classList.add('on-button');
+        blob.classList.remove('on-interactive', 'on-danger');
+      });
+      el.addEventListener('mouseleave', () => {
+        blob.classList.remove('on-button');
+      });
+    });
+
+    // Danger buttons
+    document.querySelectorAll('button.danger').forEach((el) => {
+      el.addEventListener('mouseenter', () => {
+        blob.classList.add('on-button', 'on-danger');
+        blob.classList.remove('on-interactive');
+      });
+      el.addEventListener('mouseleave', () => {
+        blob.classList.remove('on-button', 'on-danger');
+      });
     });
   }
   bindCursorEffects();
 
   // Hide cursor when leaving window
   document.addEventListener('mouseleave', () => {
-    ring.style.opacity = '0';
+    blob.style.opacity = '0';
   });
   document.addEventListener('mouseenter', () => {
-    ring.style.opacity = '1';
+    blob.style.opacity = '1';
   });
 
   // ===== Ripple Effect on Buttons =====

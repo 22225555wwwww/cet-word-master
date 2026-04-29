@@ -2,7 +2,41 @@
    Premium UI Effects & Animations
    ============================================ */
 
-/* ===== Disable heavy effects in quiz/input areas ===== */
+/* ===== Gradient Blob Cursor ===== */
+#cursor-blob {
+  position: fixed;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(37, 99, 235, 0.08) 50%, transparent 70%);
+  filter: blur(1px);
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              background 0.4s ease,
+              filter 0.4s ease,
+              opacity 0.3s ease;
+  mix-blend-mode: normal;
+}
+
+#cursor-blob.on-interactive {
+  width: 56px; height: 56px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.18) 0%, rgba(99, 102, 241, 0.1) 50%, transparent 70%);
+  filter: blur(2px);
+}
+
+#cursor-blob.on-button {
+  width: 48px; height: 48px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.35) 0%, rgba(37, 99, 235, 0.12) 50%, transparent 70%);
+  filter: blur(1px);
+}
+
+#cursor-blob.on-danger {
+  background: radial-gradient(circle, rgba(239, 68, 68, 0.3) 0%, rgba(239, 68, 68, 0.1) 50%, transparent 70%);
+}
+
+/* ===== Disable cursor effects in quiz/input areas ===== */
 .quiz-card,
 .quiz-card * {
   cursor: auto !important;
@@ -282,26 +316,6 @@
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-/* ===== Simplified Custom Cursor ===== */
-#cursor-ring {
-  position: fixed;
-  width: 28px; height: 28px;
-  border: 1.5px solid rgba(37, 99, 235, 0.3);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99998;
-  transform: translate(-50%, -50%);
-  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              height 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              border-color 0.25s,
-              opacity 0.25s;
-}
-
-#cursor-ring.expand {
-  width: 42px; height: 42px;
-  border-color: rgba(37, 99, 235, 0.5);
 }
 
 /* ===== Disable heavy effects in quiz/input areas ===== */
