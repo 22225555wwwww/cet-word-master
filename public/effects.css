@@ -2,46 +2,44 @@
    Premium UI Effects & Animations
    ============================================ */
 
-/* ===== Gradient Blob Cursor ===== */
-#cursor-blob {
+/* ===== Comet Trail Cursor ===== */
+.comet-dot {
   position: fixed;
-  width: 32px; height: 32px;
+  width: 6px; height: 6px;
   border-radius: 50%;
   pointer-events: none;
-  z-index: 99998;
+  z-index: 99997;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(37, 99, 235, 0.08) 50%, transparent 70%);
-  filter: blur(1px);
-  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-              background 0.4s ease,
-              filter 0.4s ease,
-              opacity 0.3s ease;
-  mix-blend-mode: normal;
+  background: rgba(37, 99, 235, 0.6);
+  animation: comet-fade 0.6s ease-out forwards;
 }
 
-#cursor-blob.on-interactive {
-  width: 56px; height: 56px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.18) 0%, rgba(99, 102, 241, 0.1) 50%, transparent 70%);
-  filter: blur(2px);
+.comet-dot.on-interactive {
+  background: rgba(99, 102, 241, 0.5);
+  width: 8px; height: 8px;
 }
 
-#cursor-blob.on-button {
-  width: 48px; height: 48px;
-  background: radial-gradient(circle, rgba(37, 99, 235, 0.35) 0%, rgba(37, 99, 235, 0.12) 50%, transparent 70%);
-  filter: blur(1px);
+.comet-dot.on-button {
+  background: rgba(37, 99, 235, 0.7);
+  width: 7px; height: 7px;
 }
 
-#cursor-blob.on-danger {
-  background: radial-gradient(circle, rgba(239, 68, 68, 0.3) 0%, rgba(239, 68, 68, 0.1) 50%, transparent 70%);
+.comet-dot.on-danger {
+  background: rgba(239, 68, 68, 0.6);
 }
 
-/* ===== Disable cursor effects in quiz/input areas ===== */
-.quiz-card,
-.quiz-card * {
-  cursor: auto !important;
+@keyframes comet-fade {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.2);
+  }
 }
 
+/* ===== Disable effects in quiz/input areas ===== */
 .quiz-card::after {
   display: none !important;
 }

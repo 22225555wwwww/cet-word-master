@@ -5,73 +5,48 @@
 (function () {
   'use strict';
 
-  // ===== Gradient Blob Cursor =====
-  const blob = document.createElement('div');
-  blob.id = 'cursor-blob';
-  document.body.appendChild(blob);
-
+  // ===== Comet Trail Cursor =====
   let mouseX = -100, mouseY = -100;
-  let blobX = -100, blobY = -100;
+  let lastTrailTime = 0;
+  let currentTrailClass = '';
 
   document.addEventListener('mousemove', (e) => {
     mouseX = e.clientX;
     mouseY = e.clientY;
+
+    // Throttle trail creation
+    const now = Date.now();
+    if (now - lastTrailTime < 30) return;
+    lastTrailTime = now;
+
+    const dot = document.createElement('div');
+    dot.className = 'comet-dot' + (currentTrailClass ? ' ' + currentTrailClass : '');
+    dot.style.left = mouseX + 'px';
+    dot.style.top = mouseY + 'px';
+    document.body.appendChild(dot);
+
+    // Remove after animation
+    setTimeout(() => dot.remove(), 600);
   });
 
-  // Smooth blob follow with easing
-  function animateBlob() {
-    blobX += (mouseX - blobX) * 0.12;
-    blobY += (mouseY - blobY) * 0.12;
-    blob.style.left = blobX + 'px';
-    blob.style.top = blobY + 'px';
-    requestAnimationFrame(animateBlob);
-  }
-  animateBlob();
-
-  // Context-aware cursor states
+  // Context-aware trail colors
   function bindCursorEffects() {
-    // Interactive elements (links, selects, etc.)
     document.querySelectorAll('a, select, summary, .link-btn').forEach((el) => {
-      el.addEventListener('mouseenter', () => {
-        blob.classList.add('on-interactive');
-        blob.classList.remove('on-button', 'on-danger');
-      });
-      el.addEventListener('mouseleave', () => {
-        blob.classList.remove('on-interactive');
-      });
+      el.addEventListener('mouseenter', () => { currentTrailClass = 'on-interactive'; });
+      el.addEventListener('mouseleave', () => { if (currentTrailClass === 'on-interactive') currentTrailClass = ''; });
     });
 
-    // Buttons (primary, secondary)
     document.querySelectorAll('button:not(.danger)').forEach((el) => {
-      el.addEventListener('mouseenter', () => {
-        blob.classList.add('on-button');
-        blob.classList.remove('on-interactive', 'on-danger');
-      });
-      el.addEventListener('mouseleave', () => {
-        blob.classList.remove('on-button');
-      });
+      el.addEventListener('mouseenter', () => { currentTrailClass = 'on-button'; });
+      el.addEventListener('mouseleave', () => { if (currentTrailClass === 'on-button') currentTrailClass = ''; });
     });
 
-    // Danger buttons
     document.querySelectorAll('button.danger').forEach((el) => {
-      el.addEventListener('mouseenter', () => {
-        blob.classList.add('on-button', 'on-danger');
-        blob.classList.remove('on-interactive');
-      });
-      el.addEventListener('mouseleave', () => {
-        blob.classList.remove('on-button', 'on-danger');
-      });
+      el.addEventListener('mouseenter', () => { currentTrailClass = 'on-danger'; });
+      el.addEventListener('mouseleave', () => { if (currentTrailClass === 'on-danger') currentTrailClass = ''; });
     });
   }
   bindCursorEffects();
-
-  // Hide cursor when leaving window
-  document.addEventListener('mouseleave', () => {
-    blob.style.opacity = '0';
-  });
-  document.addEventListener('mouseenter', () => {
-    blob.style.opacity = '1';
-  });
 
   // ===== Ripple Effect on Buttons =====
   document.addEventListener('click', (e) => {
