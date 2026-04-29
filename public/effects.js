@@ -64,20 +64,18 @@
     ripple.style.left = x + 'px';
     ripple.style.top = y + 'px';
 
-    btn.style.position = 'relative';
-    btn.style.overflow = 'hidden';
     btn.appendChild(ripple);
 
     setTimeout(() => ripple.remove(), 600);
   });
 
-  // ===== Magnetic Button Effect =====
-  document.querySelectorAll('.primary, .cta-btn').forEach((btn) => {
+  // ===== Magnetic Button Effect (subtle, no layout shift) =====
+  document.querySelectorAll('.cta-btn').forEach((btn) => {
     btn.addEventListener('mousemove', (e) => {
       const rect = btn.getBoundingClientRect();
       const x = e.clientX - rect.left - rect.width / 2;
       const y = e.clientY - rect.top - rect.height / 2;
-      btn.style.transform = `translate(${x * 0.15}px, ${y * 0.15}px)`;
+      btn.style.transform = `translate(${x * 0.1}px, ${y * 0.1}px)`;
     });
 
     btn.addEventListener('mouseleave', () => {
@@ -86,25 +84,7 @@
   });
 
   // ===== Tilt Card Effect (skip quiz card for better input UX) =====
-  document.querySelectorAll('.word-card').forEach((card) => {
-    card.addEventListener('mousemove', (e) => {
-      const rect = card.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / rect.width - 0.5;
-      const y = (e.clientY - rect.top) / rect.height - 0.5;
-
-      card.style.transform = `
-        perspective(800px)
-        rotateY(${x * 6}deg)
-        rotateX(${-y * 6}deg)
-        translateY(-2px)
-        scale(1.01)
-      `;
-    });
-
-    card.addEventListener('mouseleave', () => {
-      card.style.transform = '';
-    });
-  });
+  // Disabled to prevent layout issues with buttons inside cards
 
   // ===== Floating Particles Background =====
   const particleCanvas = document.createElement('canvas');

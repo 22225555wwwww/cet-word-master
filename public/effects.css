@@ -39,16 +39,6 @@
   }
 }
 
-/* ===== Disable effects in quiz/input areas ===== */
-.quiz-card::after {
-  display: none !important;
-}
-
-.quiz-card:hover {
-  transform: none !important;
-  box-shadow: var(--shadow-sm) !important;
-}
-
 /* ===== Page View Transitions ===== */
 .view-container {
   position: relative;
@@ -388,12 +378,7 @@
 }
 
 /* ===== Ripple Click Effect ===== */
-.ripple {
-  position: relative;
-  overflow: hidden;
-}
-
-.ripple .ripple-wave {
+.ripple-wave {
   position: absolute;
   border-radius: 50%;
   background: rgba(37, 99, 235, 0.15);
@@ -458,36 +443,6 @@ html {
   outline: 2px solid rgba(37, 99, 235, 0.5);
   outline-offset: 2px;
   border-radius: 4px;
-}
-
-/* ===== Word Card Shine Effect ===== */
-.word-card::after,
-.quiz-card::after {
-  content: '';
-  position: absolute;
-  top: 0; left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.15),
-    transparent
-  );
-  transform: skewX(-15deg);
-  transition: left 0.6s ease;
-  pointer-events: none;
-}
-
-.word-card,
-.quiz-card {
-  position: relative;
-  overflow: hidden;
-}
-
-.word-card:hover::after,
-.quiz-card:hover::after {
-  left: 120%;
 }
 
 /* ===== Number Counter Animation ===== */
