@@ -598,6 +598,107 @@ app.delete("/api/admin/words/:id", requireAdmin, (req, res) => {
   return res.json({ message: "删除成功" });
 });
 
+app.post("/api/admin/import-words", requireAdmin, (req, res) => {
+  const level = String(req.body.level || "").trim();
+  if (!isValidLevel(level)) {
+    return res.status(400).json({ message: "level 参数错误" });
+  }
+
+  const sourcePath = path.join(__dirname, "data", `${level}_full.txt`);
+  if (!fs.existsSync(sourcePath)) {
+    return res.status(404).json({ message: `词表文件不存在: ${sourcePath}` });
+  }
+
+  try {
+    const raw = fs.readFileSync(sourcePath, "utf8").replace(/^﻿/, "");
+    const lines = raw.split(/\r?\n/);
+
+    const words = [];
+    const seen = new Set();
+
+    for (const line of lines) {
+      const parsed = parseWordLine(line);
+      if (!parsed) continue;
+
+      const key = parsed.word.toLowerCase();
+      if (seen.has(key)) continue;
+
+      seen.add(key);
+      words.push(parsed);
+    }
+
+    if (!words.length) {
+      return res.status(400).json({ message: "未解析到有效单词" });
+    }
+
+    const coreSize = Math.min(2000, words.length);
+
+    const upsert = db.prepare(
+      `INSERT INTO words (level, word, phonetic, meaning, is_high_freq)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(level, word)
+       DO UPDATE SET
+         phonetic = excluded.phonetic,
+         meaning = excluded.meaning,
+         is_high_freq = excluded.is_high_freq`
+    );
+
+    const runImport = db.transaction(() => {
+      db.prepare("UPDATE words SET is_high_freq = 0 WHERE level = ?").run(level);
+      for (let i = 0; i < words.length; i += 1) {
+        const item = words[i];
+        const isHigh = i < coreSize ? 1 : 0;
+        upsert.run(item.word, item.phonetic, item.meaning, isHigh);
+      }
+    });
+
+    runImport();
+
+    const countRow = db.prepare("SELECT COUNT(*) AS count FROM words WHERE level = ?").get(level);
+    const highRow = db
+      .prepare("SELECT COUNT(*) AS count FROM words WHERE level = ? AND is_high_freq = 1")
+      .get(level);
+
+    return res.json({
+      message: "导入完成",
+      sourceLines: words.length,
+      totalWords: countRow.count,
+      highFreqWords: highRow.count
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "导入失败: " + error.message });
+  }
+});
+
+function parseWordLine(input) {
+  const line = String(input || "").trim();
+  if (!line) return null;
+
+  if (line.includes("大纲单词表")) return null;
+  if (/^\(共\s*\d+\s*词\)/.test(line)) return null;
+  if (/^[A-Z]$/.test(line)) return null;
+
+  const withPhonetic = line.match(/^([A-Za-z][A-Za-z0-9.'-]*)\s+\[([^\]]+)\]\s+(.+)$/);
+  if (withPhonetic) {
+    return {
+      word: withPhonetic[1].trim(),
+      phonetic: `[${withPhonetic[2].trim()}]`,
+      meaning: withPhonetic[3].trim()
+    };
+  }
+
+  const simple = line.match(/^([A-Za-z][A-Za-z0-9.'-]*)\s+(.+)$/);
+  if (simple) {
+    return {
+      word: simple[1].trim(),
+      phonetic: "",
+      meaning: simple[2].trim()
+    };
+  }
+
+  return null;
+}
+
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use((err, _req, res, _next) => {
