@@ -7,7 +7,10 @@ const state = {
   totalPages: 1,
   words: [],
   recordMap: new Map(),
-  loading: false
+  loading: false,
+  searchQ: "",
+  isSearching: false,
+  searchDebounceTimer: null
 };
 
 const els = {
@@ -24,7 +27,9 @@ const els = {
   pageFirstBtn: document.getElementById("page-first"),
   pagePrevBtn: document.getElementById("page-prev"),
   pageNextBtn: document.getElementById("page-next"),
-  pageLastBtn: document.getElementById("page-last")
+  pageLastBtn: document.getElementById("page-last"),
+  searchInput: document.getElementById("search-input"),
+  searchClearBtn: document.getElementById("search-clear")
 };
 
 async function api(url, options = {}) {
@@ -87,13 +92,22 @@ function renderPager() {
 }
 
 function renderStats() {
+  if (state.isSearching && state.searchQ) {
+    const levelText = state.level === "CET4" ? "四级" : "六级";
+    els.vocabStats.textContent = `搜索"${state.searchQ}" — ${levelText}词汇找到 ${state.total} 个结果`;
+    return;
+  }
+
   const levelText = state.level === "CET4" ? "四级" : "六级";
   els.vocabStats.textContent = `${levelText}词汇共 ${state.total} 个，当前每页 ${state.pageSize} 个`;
 }
 
 function renderTable() {
   if (!state.words.length) {
-    els.vocabBody.innerHTML = '<tr><td colspan="6">暂无词汇数据</td></tr>';
+    const msg = state.isSearching && state.searchQ
+      ? `未找到匹配"${state.searchQ}"的单词`
+      : "暂无词汇数据";
+    els.vocabBody.innerHTML = `<tr><td colspan="6">${msg}</td></tr>`;
     return;
   }
 
@@ -114,12 +128,23 @@ function renderTable() {
     .join("");
 }
 
+function renderSearchState() {
+  if (state.searchQ) {
+    els.searchInput.value = state.searchQ;
+    els.searchClearBtn.classList.remove("hidden");
+  } else {
+    els.searchInput.value = "";
+    els.searchClearBtn.classList.add("hidden");
+  }
+}
+
 function renderAll() {
   renderUserArea();
   renderLevelButtons();
   renderStats();
   renderTable();
   renderPager();
+  renderSearchState();
 }
 
 async function loadRecords() {
@@ -152,11 +177,81 @@ async function loadWordsPaged() {
   }
 }
 
+async function loadSearchResults() {
+  if (!state.searchQ) return;
+
+  state.loading = true;
+  renderPager();
+
+  try {
+    const params = new URLSearchParams({
+      q: state.searchQ,
+      level: state.level,
+      page: String(state.page),
+      pageSize: String(state.pageSize)
+    });
+
+    const data = await api(`/api/words/search?${params.toString()}`);
+    state.words = data.words || [];
+    state.page = data.page || 1;
+    state.pageSize = data.pageSize || state.pageSize;
+    state.total = data.total || 0;
+    state.totalPages = data.totalPages || 1;
+  } finally {
+    state.loading = false;
+    renderAll();
+  }
+}
+
+async function loadPage() {
+  if (state.isSearching && state.searchQ) {
+    await loadSearchResults();
+  } else {
+    await loadWordsPaged();
+  }
+}
+
+function handleSearchInput() {
+  const q = String(els.searchInput.value || "").trim();
+
+  clearTimeout(state.searchDebounceTimer);
+
+  if (!q) {
+    state.searchQ = "";
+    state.isSearching = false;
+    state.page = 1;
+    els.searchClearBtn.classList.add("hidden");
+    loadPage();
+    return;
+  }
+
+  state.searchDebounceTimer = setTimeout(() => {
+    state.searchQ = q;
+    state.isSearching = true;
+    state.page = 1;
+    els.searchClearBtn.classList.remove("hidden");
+    loadPage();
+  }, 300);
+}
+
+function clearSearch() {
+  state.searchQ = "";
+  state.isSearching = false;
+  state.page = 1;
+  els.searchInput.value = "";
+  els.searchClearBtn.classList.add("hidden");
+  loadPage();
+}
+
 async function switchLevel(level) {
   if (state.loading) return;
   state.level = level;
   state.page = 1;
-  await loadWordsPaged();
+  state.searchQ = "";
+  state.isSearching = false;
+  els.searchInput.value = "";
+  els.searchClearBtn.classList.add("hidden");
+  await loadPage();
 }
 
 async function gotoPage(page) {
@@ -165,7 +260,7 @@ async function gotoPage(page) {
   if (target === state.page) return;
 
   state.page = target;
-  await loadWordsPaged();
+  await loadPage();
 }
 
 async function refreshCounts() {
@@ -204,7 +299,7 @@ function bindEvents() {
   els.pageSizeSelect.addEventListener("change", () => {
     state.pageSize = Number(els.pageSizeSelect.value);
     state.page = 1;
-    loadWordsPaged().catch((error) => alert(error.message));
+    loadPage().catch((error) => alert(error.message));
   });
 
   els.refreshCountsBtn.addEventListener("click", () => {
@@ -223,6 +318,14 @@ function bindEvents() {
   els.pageLastBtn.addEventListener("click", () => {
     gotoPage(state.totalPages).catch((error) => alert(error.message));
   });
+
+  els.searchInput.addEventListener("input", handleSearchInput);
+  els.searchInput.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      clearSearch();
+    }
+  });
+  els.searchClearBtn.addEventListener("click", clearSearch);
 }
 
 async function init() {

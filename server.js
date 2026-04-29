@@ -232,6 +232,59 @@ app.get("/api/words/paged", requireAuth, (req, res) => {
   });
 });
 
+app.get("/api/words/search", requireAuth, (req, res) => {
+  const q = String(req.query.q || "").trim();
+  if (!q || q.length > 100) {
+    return res.status(400).json({ message: "搜索关键词不能为空且不超过 100 字符" });
+  }
+
+  const level = req.query.level ? String(req.query.level) : null;
+  if (level && !isValidLevel(level)) {
+    return res.status(400).json({ message: "level 参数错误" });
+  }
+
+  const rawPage = Number(req.query.page || 1);
+  const rawPageSize = Number(req.query.pageSize || 50);
+  const pageSize = Number.isFinite(rawPageSize)
+    ? Math.max(10, Math.min(200, Math.floor(rawPageSize)))
+    : 50;
+  const requestedPage = Number.isFinite(rawPage) ? Math.max(1, Math.floor(rawPage)) : 1;
+
+  const like = `%${q}%`;
+  const levelFilter = level ? "AND level = ?" : "";
+  const levelParams = level ? [level] : [];
+
+  const countSql = `SELECT COUNT(*) AS count FROM words WHERE (word LIKE ? OR meaning LIKE ?) ${levelFilter}`;
+  const total = db.prepare(countSql).get(like, like, ...levelParams).count;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(requestedPage, totalPages);
+  const offset = (page - 1) * pageSize;
+
+  const dataSql = `SELECT id, level, word, phonetic, meaning, is_high_freq AS isHighFreq
+    FROM words
+    WHERE (word LIKE ? OR meaning LIKE ?) ${levelFilter}
+    ORDER BY
+      CASE WHEN word = ? THEN 0 WHEN word LIKE ? THEN 1 ELSE 2 END,
+      id ASC
+    LIMIT ? OFFSET ?`;
+  const exactMatch = q;
+  const prefixMatch = `${q}%`;
+
+  const words = db
+    .prepare(dataSql)
+    .all(like, like, ...levelParams, exactMatch, prefixMatch, pageSize, offset);
+
+  return res.json({
+    q,
+    level: level || "all",
+    page,
+    pageSize,
+    total,
+    totalPages,
+    words
+  });
+});
+
 app.get("/api/records", requireAuth, (req, res) => {
   const records = db
     .prepare(

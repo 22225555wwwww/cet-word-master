@@ -568,6 +568,49 @@ tr:hover td {
   padding: 0 8px;
 }
 
+/* ===== Search Row ===== */
+.search-row {
+  margin-top: 14px;
+}
+
+.search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-wrap input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.search-clear-btn:hover {
+  background: rgba(37, 99, 235, 0.15);
+  color: var(--primary-strong);
+  filter: none;
+}
+
 /* ===== Table Controls ===== */
 .table-controls {
   margin-top: 14px;
