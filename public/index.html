@@ -13,6 +13,7 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="effects.css" />
   </head>
   <body>
     <div class="bg-shape shape-a"></div>
@@ -38,7 +39,8 @@
       </header>
 
       <section id="auth-panel" class="panel" aria-label="账号登录">
-        <div class="segment" role="tablist" aria-label="登录注册切换">
+        <div class="segment" role="tablist" aria-label="登录注册切换" id="auth-segment">
+          <div class="slider" id="auth-slider"></div>
           <button id="tab-login" class="segment-btn active" role="tab" aria-selected="true">登录</button>
           <button id="tab-register" class="segment-btn" role="tab" aria-selected="false">注册</button>
         </div>
@@ -72,7 +74,8 @@
 
       <section id="app-panel" class="hidden">
         <section class="panel" aria-label="等级选择">
-          <div class="segment" role="tablist" aria-label="四六级切换">
+          <div class="segment" role="tablist" aria-label="四六级切换" id="level-segment">
+            <div class="slider" id="level-slider"></div>
             <button id="btn-cet4" class="segment-btn active" role="tab" aria-selected="true">四级（CET-4）</button>
             <button id="btn-cet6" class="segment-btn" role="tab" aria-selected="false">六级（CET-6）</button>
           </div>
@@ -85,7 +88,8 @@
           </div>
           <div class="mode-row">
             <p class="mode-label">背词模式</p>
-            <div class="segment mini" role="tablist" aria-label="背词模式切换">
+            <div class="segment mini" role="tablist" aria-label="背词模式切换" id="order-segment">
+              <div class="slider" id="order-slider"></div>
               <button id="order-sequential" class="segment-btn active" role="tab" aria-selected="true">
                 顺序
               </button>
@@ -120,7 +124,8 @@
           </div>
           <div class="mode-row">
             <p class="mode-label">训练模式</p>
-            <div class="segment mini" role="tablist" aria-label="默写模式切换">
+            <div class="segment mini" role="tablist" aria-label="默写模式切换" id="quiz-segment">
+              <div class="slider" id="quiz-slider"></div>
               <button id="quiz-mode-cn-en" class="segment-btn active" role="tab" aria-selected="true">
                 中译英
               </button>
@@ -195,6 +200,7 @@
       </section>
     </main>
 
+    <script src="effects.js"></script>
     <script src="app.js"></script>
   </body>
 </html>

@@ -1,3 +1,18 @@
+// ===== Slider Animation Helper =====
+function moveSlider(segmentId, activeBtn) {
+  const segment = document.getElementById(segmentId);
+  if (!segment) return;
+  const slider = segment.querySelector('.slider');
+  if (!slider) return;
+  const btn = segment.querySelector(activeBtn);
+  if (!btn) return;
+  const segmentRect = segment.getBoundingClientRect();
+  const btnRect = btn.getBoundingClientRect();
+  const padding = parseFloat(getComputedStyle(segment).paddingLeft) || 4;
+  slider.style.width = btnRect.width + 'px';
+  slider.style.transform = `translateX(${btnRect.left - segmentRect.left - padding}px)`;
+}
+
 const state = {
   user: null,
   level: "CET4",
@@ -138,8 +153,17 @@ function switchAuthTab(mode) {
   els.tabLogin.setAttribute("aria-selected", String(isLogin));
   els.tabRegister.setAttribute("aria-selected", String(!isLogin));
 
-  els.loginForm.classList.toggle("hidden", !isLogin);
-  els.registerForm.classList.toggle("hidden", isLogin);
+  // Smooth crossfade between forms
+  const showForm = isLogin ? els.loginForm : els.registerForm;
+  const hideForm = isLogin ? els.registerForm : els.loginForm;
+
+  hideForm.classList.add("hidden");
+  showForm.classList.remove("hidden");
+  showForm.classList.remove("auth-crossfade-enter");
+  void showForm.offsetWidth; // force reflow
+  showForm.classList.add("auth-crossfade-enter");
+
+  moveSlider("auth-segment", isLogin ? "#tab-login" : "#tab-register");
   setAuthMessage("");
 }
 
@@ -197,6 +221,7 @@ function renderLevelButtons() {
   els.btnCET6.classList.toggle("active", !is4);
   els.btnCET4.setAttribute("aria-selected", String(is4));
   els.btnCET6.setAttribute("aria-selected", String(!is4));
+  moveSlider("level-segment", is4 ? "#btn-cet4" : "#btn-cet6");
 }
 
 function renderOrderModeButtons() {
@@ -206,6 +231,7 @@ function renderOrderModeButtons() {
   els.orderSequentialBtn.setAttribute("aria-selected", String(isSequential));
   els.orderRandomBtn.setAttribute("aria-selected", String(!isSequential));
   els.nextBtn.textContent = isSequential ? "下一个" : "随机下一个";
+  moveSlider("order-segment", isSequential ? "#order-sequential" : "#order-random");
 }
 
 function renderWordCard() {
@@ -342,6 +368,7 @@ function renderQuizModeButtons() {
   els.quizModeEnCnBtn.classList.toggle("active", !isCnEn);
   els.quizModeCnEnBtn.setAttribute("aria-selected", String(isCnEn));
   els.quizModeEnCnBtn.setAttribute("aria-selected", String(!isCnEn));
+  moveSlider("quiz-segment", isCnEn ? "#quiz-mode-cn-en" : "#quiz-mode-en-cn");
 }
 
 function renderQuizStats() {
@@ -485,6 +512,14 @@ function resetQuizForCurrentLevel() {
 }
 
 async function switchLevel(level) {
+  // Animate transition
+  const appPanel = els.appPanel;
+  if (appPanel) {
+    appPanel.style.opacity = "0.5";
+    appPanel.style.transform = "translateY(4px)";
+    appPanel.style.transition = "opacity 0.2s ease, transform 0.2s ease";
+  }
+
   state.level = level;
   state.index = 0;
   if (!state.words[level].length) {
@@ -492,6 +527,19 @@ async function switchLevel(level) {
   }
   resetQuizForCurrentLevel();
   renderApp();
+
+  // Animate back in
+  if (appPanel) {
+    requestAnimationFrame(() => {
+      appPanel.style.opacity = "1";
+      appPanel.style.transform = "translateY(0)";
+      setTimeout(() => {
+        appPanel.style.transition = "";
+        appPanel.style.opacity = "";
+        appPanel.style.transform = "";
+      }, 300);
+    });
+  }
 }
 
 function switchOrderMode(mode) {
@@ -508,13 +556,25 @@ function switchQuizMode(mode) {
 }
 
 function enterLoggedInState() {
-  els.authPanel.classList.add("hidden");
-  els.appPanel.classList.remove("hidden");
+  els.authPanel.classList.add("panel-hide");
+  setTimeout(() => {
+    els.authPanel.classList.add("hidden");
+    els.authPanel.classList.remove("panel-hide");
+    els.appPanel.classList.remove("hidden");
+    els.appPanel.classList.add("panel-show");
+    setTimeout(() => els.appPanel.classList.remove("panel-show"), 500);
+  }, 300);
 }
 
 function enterLoggedOutState() {
-  els.authPanel.classList.remove("hidden");
-  els.appPanel.classList.add("hidden");
+  els.appPanel.classList.add("panel-hide");
+  setTimeout(() => {
+    els.appPanel.classList.add("hidden");
+    els.appPanel.classList.remove("panel-hide");
+    els.authPanel.classList.remove("hidden");
+    els.authPanel.classList.add("panel-show");
+    setTimeout(() => els.authPanel.classList.remove("panel-show"), 500);
+  }, 300);
 }
 
 async function bootstrapLoggedInData() {
@@ -600,6 +660,15 @@ function nextWord() {
   const words = getCurrentWords();
   if (!words.length) return;
 
+  // Animate card out then in
+  const card = document.querySelector(".word-card");
+  if (card) {
+    card.classList.add("word-slide-left");
+    card.addEventListener("animationend", function handler() {
+      card.removeEventListener("animationend", handler);
+    });
+  }
+
   if (state.orderMode === "random") {
     state.index = pickRandomIndex(words.length, state.index);
   } else {
@@ -607,6 +676,14 @@ function nextWord() {
   }
 
   renderWordCard();
+
+  // Animate new card in
+  const newCard = document.querySelector(".word-card");
+  if (newCard) {
+    newCard.classList.remove("word-slide-left");
+    void newCard.offsetWidth;
+    newCard.classList.add("word-slide-right");
+  }
 }
 
 function normalizeEnglish(text) {
@@ -674,12 +751,34 @@ function nextQuizQuestion() {
     return;
   }
 
-  const nextId = pickRandomWordId(state.quiz.currentWordId, quizWords);
-  state.quiz.currentWordId = nextId;
-  state.quiz.answerRevealed = false;
-  els.quizInput.value = "";
-  setQuizFeedback("已切换新题目。", "info");
-  renderQuizCard();
+  // Animate quiz card transition
+  const quizCard = document.querySelector(".quiz-card");
+  if (quizCard) {
+    quizCard.style.transition = "opacity 0.2s ease, transform 0.2s ease";
+    quizCard.style.opacity = "0.4";
+    quizCard.style.transform = "scale(0.98)";
+  }
+
+  setTimeout(() => {
+    const nextId = pickRandomWordId(state.quiz.currentWordId, quizWords);
+    state.quiz.currentWordId = nextId;
+    state.quiz.answerRevealed = false;
+    els.quizInput.value = "";
+    setQuizFeedback("已切换新题目。", "info");
+    renderQuizCard();
+
+    if (quizCard) {
+      requestAnimationFrame(() => {
+        quizCard.style.opacity = "1";
+        quizCard.style.transform = "scale(1)";
+        setTimeout(() => {
+          quizCard.style.transition = "";
+          quizCard.style.opacity = "";
+          quizCard.style.transform = "";
+        }, 250);
+      });
+    }
+  }, 200);
 }
 
 async function submitQuizAnswer() {
@@ -822,6 +921,19 @@ function bindEvents() {
 async function init() {
   bindEvents();
   switchAuthTab("login");
+
+  // Initialize sliders after DOM is ready
+  requestAnimationFrame(() => {
+    moveSlider("auth-segment", "#tab-login");
+  });
+
+  // Recalculate sliders on resize
+  window.addEventListener("resize", () => {
+    moveSlider("auth-segment", state.authMode === "login" ? "#tab-login" : "#tab-register");
+    moveSlider("level-segment", state.level === "CET4" ? "#btn-cet4" : "#btn-cet6");
+    moveSlider("order-segment", state.orderMode === "sequential" ? "#order-sequential" : "#order-random");
+    moveSlider("quiz-segment", state.quiz.mode === "cn-en" ? "#quiz-mode-cn-en" : "#quiz-mode-en-cn");
+  });
 
   try {
     const data = await api("/api/auth/me");
