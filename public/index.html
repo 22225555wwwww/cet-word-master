@@ -30,7 +30,9 @@
           <div class="account-box">
             <p id="user-info" class="muted">未登录</p>
             <div class="account-actions">
+              <a id="grammar-link" class="link-btn hidden" href="/grammar.html">语法</a>
               <a id="vocab-link" class="link-btn hidden" href="/vocab.html">词汇表</a>
+              <a id="personal-link" class="link-btn hidden" href="/personal.html">个人数据</a>
               <a id="admin-link" class="link-btn hidden" href="/admin.html">后台管理</a>
               <button id="logout-btn" class="secondary hidden">退出登录</button>
             </div>
@@ -78,6 +80,62 @@
             <div class="slider" id="level-slider"></div>
             <button id="btn-cet4" class="segment-btn active" role="tab" aria-selected="true">四级（CET-4）</button>
             <button id="btn-cet6" class="segment-btn" role="tab" aria-selected="false">六级（CET-6）</button>
+          </div>
+        </section>
+
+        <!-- 每日背词 -->
+        <section class="panel" aria-label="每日背词" id="daily-panel">
+          <div class="section-title-row">
+            <h2>每日背词</h2>
+            <p id="daily-streak" class="muted"></p>
+          </div>
+          <div id="daily-loading" class="hint">加载今日任务...</div>
+          <div id="daily-content" class="hidden">
+            <div class="daily-progress-bar-wrap">
+              <div class="daily-progress-bar" id="daily-progress-bar"></div>
+              <p class="daily-progress-text" id="daily-progress-text"></p>
+            </div>
+
+            <!-- 记忆阶段 -->
+            <div id="daily-memorize-phase">
+              <div class="daily-word-grid" id="daily-word-grid"></div>
+            </div>
+
+            <!-- 默写阶段 -->
+            <div id="daily-dictation-phase" class="hidden">
+              <div class="mode-row">
+                <p class="mode-label">默写模式</p>
+                <div class="segment mini" role="tablist" aria-label="每日默写模式" id="daily-dictation-segment">
+                  <div class="slider" id="daily-dictation-slider"></div>
+                  <button id="daily-dict-cn-en" class="segment-btn active" role="tab" aria-selected="true">中译英</button>
+                  <button id="daily-dict-en-cn" class="segment-btn" role="tab" aria-selected="false">英译中</button>
+                </div>
+              </div>
+              <article class="quiz-card">
+                <p id="daily-dict-mode-tip" class="level-tag">请根据中文释义写英文单词</p>
+                <p id="daily-dict-question" class="quiz-question"></p>
+                <p id="daily-dict-sub" class="muted"></p>
+                <div class="quiz-input-row">
+                  <input id="daily-dict-input" type="text" placeholder="输入答案后点击提交" />
+                  <button id="daily-dict-submit" class="primary" type="button">提交答案</button>
+                  <button id="daily-dict-next" class="secondary" type="button">换一题</button>
+                </div>
+                <div class="action-row quiz-actions">
+                  <button id="daily-dict-show-answer" class="danger" type="button">显示答案</button>
+                </div>
+                <p id="daily-dict-answer" class="quiz-answer hidden"></p>
+                <p id="daily-dict-feedback" class="hint"></p>
+              </article>
+            </div>
+
+            <!-- 今日总结 -->
+            <div id="daily-summary" class="hidden">
+              <div class="daily-summary-card">
+                <h3>今日任务完成</h3>
+                <p id="daily-summary-text"></p>
+                <button id="daily-summary-continue" class="primary">继续自由学习</button>
+              </div>
+            </div>
           </div>
         </section>
 

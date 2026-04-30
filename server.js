@@ -5,6 +5,7 @@ const session = require("express-session");
 const bcrypt = require("bcryptjs");
 const Database = require("better-sqlite3");
 const { WORD_SEED } = require("./src/wordSeed");
+const { GRAMMAR_SEED } = require("./src/grammarSeed");
 
 const PORT = Number(process.env.PORT || 3000);
 const NODE_ENV = String(process.env.NODE_ENV || "development");
@@ -25,6 +26,7 @@ db.pragma("foreign_keys = ON");
 
 initDatabase();
 seedWords();
+seedGrammar();
 seedAdmin();
 
 const app = express();
@@ -699,6 +701,547 @@ function parseWordLine(input) {
   return null;
 }
 
+app.get("/api/grammar/categories", requireAuth, (_req, res) => {
+  const rows = db
+    .prepare(
+      `SELECT category, COUNT(*) AS count
+       FROM grammar_points
+       GROUP BY category
+       ORDER BY category ASC`
+    )
+    .all();
+
+  return res.json({ categories: rows });
+});
+
+app.get("/api/grammar", requireAuth, (req, res) => {
+  const category = req.query.category ? String(req.query.category) : null;
+
+  let points;
+  if (category) {
+    points = db
+      .prepare(
+        `SELECT gp.*, (SELECT COUNT(*) FROM grammar_examples WHERE grammar_id = gp.id) AS exampleCount
+         FROM grammar_points gp
+         WHERE gp.category = ?
+         ORDER BY gp.id ASC`
+      )
+      .all(category);
+  } else {
+    points = db
+      .prepare(
+        `SELECT gp.*, (SELECT COUNT(*) FROM grammar_examples WHERE grammar_id = gp.id) AS exampleCount
+         FROM grammar_points gp
+         ORDER BY gp.category ASC, gp.id ASC`
+      )
+      .all();
+  }
+
+  return res.json({ category: category || "all", points });
+});
+
+app.get("/api/grammar/:id", requireAuth, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: "语法点 ID 错误" });
+  }
+
+  const point = db.prepare("SELECT * FROM grammar_points WHERE id = ?").get(id);
+  if (!point) {
+    return res.status(404).json({ message: "语法点不存在" });
+  }
+
+  const examples = db
+    .prepare("SELECT * FROM grammar_examples WHERE grammar_id = ? ORDER BY sort_order ASC, id ASC")
+    .all(id);
+
+  return res.json({ point, examples });
+});
+
+app.post("/api/admin/grammar", requireAdmin, (req, res) => {
+  const category = String(req.body.category || "").trim();
+  const title = String(req.body.title || "").trim();
+  const pattern = String(req.body.pattern || "").trim();
+  const explanation = String(req.body.explanation || "").trim();
+
+  if (!category || category.length > 30) {
+    return res.status(400).json({ message: "分类不能为空且不超过 30 字符" });
+  }
+  if (!title || title.length > 100) {
+    return res.status(400).json({ message: "标题不能为空且不超过 100 字符" });
+  }
+  if (!explanation || explanation.length > 2000) {
+    return res.status(400).json({ message: "解释不能为空且不超过 2000 字符" });
+  }
+  if (pattern.length > 200) {
+    return res.status(400).json({ message: "句型结构不超过 200 字符" });
+  }
+
+  const result = db
+    .prepare("INSERT INTO grammar_points (category, title, pattern, explanation) VALUES (?, ?, ?, ?)")
+    .run(category, title, pattern, explanation);
+
+  const point = db.prepare("SELECT * FROM grammar_points WHERE id = ?").get(result.lastInsertRowid);
+  return res.status(201).json({ message: "新增语法点成功", point });
+});
+
+app.put("/api/admin/grammar/:id", requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  const category = String(req.body.category || "").trim();
+  const title = String(req.body.title || "").trim();
+  const pattern = String(req.body.pattern || "").trim();
+  const explanation = String(req.body.explanation || "").trim();
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: "语法点 ID 错误" });
+  }
+  if (!category || category.length > 30) {
+    return res.status(400).json({ message: "分类不能为空" });
+  }
+  if (!title || title.length > 100) {
+    return res.status(400).json({ message: "标题不能为空" });
+  }
+  if (!explanation || explanation.length > 2000) {
+    return res.status(400).json({ message: "解释不能为空" });
+  }
+
+  const result = db
+    .prepare("UPDATE grammar_points SET category = ?, title = ?, pattern = ?, explanation = ? WHERE id = ?")
+    .run(category, title, pattern, explanation, id);
+
+  if (result.changes === 0) {
+    return res.status(404).json({ message: "语法点不存在" });
+  }
+
+  const point = db.prepare("SELECT * FROM grammar_points WHERE id = ?").get(id);
+  return res.json({ message: "更新成功", point });
+});
+
+app.delete("/api/admin/grammar/:id", requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: "语法点 ID 错误" });
+  }
+
+  const result = db.prepare("DELETE FROM grammar_points WHERE id = ?").run(id);
+  if (result.changes === 0) {
+    return res.status(404).json({ message: "语法点不存在" });
+  }
+
+  return res.json({ message: "删除成功" });
+});
+
+app.post("/api/admin/grammar/:id/examples", requireAdmin, (req, res) => {
+  const grammarId = Number(req.params.id);
+  const sentenceEn = String(req.body.sentence_en || "").trim();
+  const sentenceZh = String(req.body.sentence_zh || "").trim();
+  const note = String(req.body.note || "").trim();
+
+  if (!Number.isInteger(grammarId) || grammarId <= 0) {
+    return res.status(400).json({ message: "语法点 ID 错误" });
+  }
+  if (!sentenceEn || sentenceEn.length > 300) {
+    return res.status(400).json({ message: "英文例句不能为空且不超过 300 字符" });
+  }
+  if (!sentenceZh || sentenceZh.length > 300) {
+    return res.status(400).json({ message: "中文翻译不能为空且不超过 300 字符" });
+  }
+
+  const point = db.prepare("SELECT id FROM grammar_points WHERE id = ?").get(grammarId);
+  if (!point) {
+    return res.status(404).json({ message: "语法点不存在" });
+  }
+
+  const maxOrder = db
+    .prepare("SELECT COALESCE(MAX(sort_order), -1) AS maxOrder FROM grammar_examples WHERE grammar_id = ?")
+    .get(grammarId);
+
+  const result = db
+    .prepare("INSERT INTO grammar_examples (grammar_id, sentence_en, sentence_zh, note, sort_order) VALUES (?, ?, ?, ?, ?)")
+    .run(grammarId, sentenceEn, sentenceZh, note, maxOrder.maxOrder + 1);
+
+  const example = db.prepare("SELECT * FROM grammar_examples WHERE id = ?").get(result.lastInsertRowid);
+  return res.status(201).json({ message: "例句添加成功", example });
+});
+
+app.delete("/api/admin/examples/:id", requireAdmin, (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: "例句 ID 错误" });
+  }
+
+  const result = db.prepare("DELETE FROM grammar_examples WHERE id = ?").run(id);
+  if (result.changes === 0) {
+    return res.status(404).json({ message: "例句不存在" });
+  }
+
+  return res.json({ message: "删除成功" });
+});
+
+
+// ===== Daily Words & Stats =====
+
+function getTodayDate() {
+  const d = new Date();
+  const yy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yy}-${mm}-${dd}`;
+}
+
+function ensureDailyWords(userId, level) {
+  const today = getTodayDate();
+
+  const existing = db
+    .prepare("SELECT COUNT(*) AS count FROM user_daily_progress WHERE user_id = ? AND date = ? AND level = ?")
+    .get(userId, today, level);
+
+  if (existing.count > 0) return;
+
+  // Pick 1-2 review words (previously memorized, oldest review first)
+  const reviewWords = db
+    .prepare(
+      `SELECT w.id FROM words w
+       INNER JOIN user_word_records r ON r.word_id = w.id AND r.user_id = ?
+       WHERE w.level = ? AND w.is_high_freq = 1 AND r.remember_count > 0
+       ORDER BY r.last_reviewed_at ASC
+       LIMIT 2`
+    )
+    .all(userId, level)
+    .map((r) => r.id);
+
+  const reviewCount = reviewWords.length;
+
+  // Pick remaining new words (lowest remember_count first)
+  const placeholders = reviewWords.length ? reviewWords.map(() => "?").join(",") : null;
+
+  let newWords;
+  if (placeholders) {
+    newWords = db
+      .prepare(
+        `SELECT w.id FROM words w
+         LEFT JOIN user_word_records r ON r.word_id = w.id AND r.user_id = ?
+         WHERE w.level = ? AND w.is_high_freq = 1 AND w.id NOT IN (${placeholders})
+         ORDER BY COALESCE(r.remember_count, 0) ASC, RANDOM()
+         LIMIT ?`
+      )
+      .all(userId, level, ...reviewWords, 20 - reviewCount)
+      .map((r) => r.id);
+  } else {
+    newWords = db
+      .prepare(
+        `SELECT w.id FROM words w
+         LEFT JOIN user_word_records r ON r.word_id = w.id AND r.user_id = ?
+         WHERE w.level = ? AND w.is_high_freq = 1
+         ORDER BY COALESCE(r.remember_count, 0) ASC, RANDOM()
+         LIMIT 20`
+      )
+      .all(userId, level)
+      .map((r) => r.id);
+  }
+
+  const allWordIds = [...reviewWords, ...newWords];
+
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO user_daily_progress (user_id, date, level, word_id) VALUES (?, ?, ?, ?)"
+  );
+
+  const runInsert = db.transaction(() => {
+    for (const wordId of allWordIds) {
+      insert.run(userId, today, level, wordId);
+    }
+  });
+
+  runInsert();
+}
+
+function updateCheckin(userId) {
+  const today = getTodayDate();
+  const record = db.prepare("SELECT * FROM user_checkins WHERE user_id = ?").get(userId);
+
+  if (!record) {
+    db.prepare(
+      "INSERT INTO user_checkins (user_id, last_checkin_date, consecutive_days, total_days) VALUES (?, ?, 1, 1)"
+    ).run(userId, today);
+    return;
+  }
+
+  if (record.last_checkin_date === today) return;
+
+  const lastDate = new Date(record.last_checkin_date + "T00:00:00");
+  const todayDate = new Date(today + "T00:00:00");
+  const diffDays = Math.round((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+
+  let consecutive = record.consecutive_days;
+  if (diffDays === 1) {
+    consecutive += 1;
+  } else {
+    consecutive = 1;
+  }
+
+  db.prepare(
+    "UPDATE user_checkins SET last_checkin_date = ?, consecutive_days = ?, total_days = total_days + 1 WHERE user_id = ?"
+  ).run(today, consecutive, userId);
+}
+
+app.post("/api/daily/checkin", requireAuth, (req, res) => {
+  const level = String(req.body.level || "CET4");
+  if (!isValidLevel(level)) {
+    return res.status(400).json({ message: "level 参数错误" });
+  }
+
+  updateCheckin(req.currentUser.id);
+  ensureDailyWords(req.currentUser.id, level);
+
+  const today = getTodayDate();
+  const progress = getTodayProgress(req.currentUser.id, level, today);
+
+  return res.json({ message: "签到成功", today: progress });
+});
+
+function getTodayProgress(userId, level, today) {
+  const rows = db
+    .prepare(
+      `SELECT dp.*, w.word, w.phonetic, w.meaning
+       FROM user_daily_progress dp
+       JOIN words w ON w.id = dp.word_id
+       WHERE dp.user_id = ? AND dp.date = ? AND dp.level = ?
+       ORDER BY dp.id ASC`
+    )
+    .all(userId, today, level);
+
+  const memorized = rows.filter((r) => r.memorized === 1).length;
+  const total = rows.length;
+  const dictationEnCn = rows.filter((r) => r.dictation_en_cn === 1).length;
+  const dictationCnEn = rows.filter((r) => r.dictation_cn_en === 1).length;
+
+  const phase = memorized >= total && total > 0 ? "dictation" : "memorize";
+
+  return {
+    level,
+    date: today,
+    memorized,
+    total,
+    dictationEnCn,
+    dictationCnEn,
+    phase,
+    words: rows.map((r) => ({
+      id: r.word_id,
+      word: r.word,
+      phonetic: r.phonetic,
+      meaning: r.meaning,
+      memorized: r.memorized === 1,
+      dictationEnCn: r.dictation_en_cn === 1,
+      dictationCnEn: r.dictation_cn_en === 1
+    }))
+  };
+}
+
+app.get("/api/daily/today", requireAuth, (req, res) => {
+  const level = String(req.query.level || "CET4");
+  if (!isValidLevel(level)) {
+    return res.status(400).json({ message: "level 参数错误" });
+  }
+
+  const today = getTodayDate();
+  ensureDailyWords(req.currentUser.id, level);
+  const progress = getTodayProgress(req.currentUser.id, level, today);
+
+  return res.json({ today: progress });
+});
+
+app.post("/api/daily/memorize", requireAuth, (req, res) => {
+  const wordId = Number(req.body.wordId);
+  const level = String(req.body.level || "CET4");
+
+  if (!Number.isInteger(wordId) || wordId <= 0) {
+    return res.status(400).json({ message: "wordId 参数错误" });
+  }
+  if (!isValidLevel(level)) {
+    return res.status(400).json({ message: "level 参数错误" });
+  }
+
+  const today = getTodayDate();
+
+  db.prepare(
+    `UPDATE user_daily_progress SET memorized = 1
+     WHERE user_id = ? AND date = ? AND level = ? AND word_id = ?`
+  ).run(req.currentUser.id, today, level, wordId);
+
+  // Also record in user_word_records
+  db.prepare(
+    `INSERT INTO user_word_records (user_id, word_id, remember_count, last_reviewed_at)
+     VALUES (?, ?, 1, datetime('now'))
+     ON CONFLICT(user_id, word_id)
+     DO UPDATE SET
+       remember_count = remember_count + 1,
+       last_reviewed_at = datetime('now')`
+  ).run(req.currentUser.id, wordId);
+
+  const progress = getTodayProgress(req.currentUser.id, level, today);
+
+  return res.json({ message: "已记住", today: progress });
+});
+
+app.post("/api/daily/dictation", requireAuth, (req, res) => {
+  const wordId = Number(req.body.wordId);
+  const level = String(req.body.level || "CET4");
+  const mode = String(req.body.mode || "").trim();
+
+  if (!Number.isInteger(wordId) || wordId <= 0) {
+    return res.status(400).json({ message: "wordId 参数错误" });
+  }
+  if (!isValidLevel(level)) {
+    return res.status(400).json({ message: "level 参数错误" });
+  }
+  if (mode !== "en-cn" && mode !== "cn-en") {
+    return res.status(400).json({ message: "mode 参数错误，需为 en-cn 或 cn-en" });
+  }
+
+  const today = getTodayDate();
+  const column = mode === "en-cn" ? "dictation_en_cn" : "dictation_cn_en";
+
+  db.prepare(
+    `UPDATE user_daily_progress SET ${column} = 1
+     WHERE user_id = ? AND date = ? AND level = ? AND word_id = ?`
+  ).run(req.currentUser.id, today, level, wordId);
+
+  // Also record dictation success
+  db.prepare(
+    `INSERT INTO user_word_records (user_id, word_id, remember_count, last_reviewed_at, dictation_success_count, last_dictation_success_at)
+     VALUES (?, ?, 0, NULL, 1, datetime('now'))
+     ON CONFLICT(user_id, word_id)
+     DO UPDATE SET
+       dictation_success_count = dictation_success_count + 1,
+       last_dictation_success_at = datetime('now')`
+  ).run(req.currentUser.id, wordId);
+
+  const progress = getTodayProgress(req.currentUser.id, level, today);
+
+  return res.json({ message: "默写记录成功", today: progress });
+});
+
+app.get("/api/stats", requireAuth, (req, res) => {
+  const userId = req.currentUser.id;
+  const today = getTodayDate();
+
+  // Streak
+  const checkin = db.prepare("SELECT * FROM user_checkins WHERE user_id = ?").get(userId);
+  const streak = {
+    consecutiveDays: checkin ? checkin.consecutive_days : 0,
+    totalDays: checkin ? checkin.total_days : 0
+  };
+
+  // Word stats
+  const wordStats = db
+    .prepare(
+      `SELECT
+        COALESCE(SUM(CASE WHEN w.level = 'CET4' THEN r.remember_count ELSE 0 END), 0) AS cet4Remembered,
+        COALESCE(SUM(CASE WHEN w.level = 'CET6' THEN r.remember_count ELSE 0 END), 0) AS cet6Remembered,
+        COUNT(DISTINCT r.word_id) AS totalWords,
+        COALESCE(SUM(r.remember_count), 0) AS totalRemembered
+       FROM user_word_records r
+       JOIN words w ON w.id = r.word_id
+       WHERE r.user_id = ? AND r.remember_count > 0`
+    )
+    .get(userId);
+
+  const totalWordsInDb = db.prepare("SELECT COUNT(*) AS count FROM words").get().count;
+  const retentionRate = totalWordsInDb > 0
+    ? Math.round((wordStats.totalWords / totalWordsInDb) * 100) / 100
+    : 0;
+
+  // Dictation stats
+  const dictStats = db
+    .prepare(
+      `SELECT
+        COALESCE(SUM(r.dictation_success_count), 0) AS totalEnCn,
+        COALESCE(SUM(r.dictation_success_count), 0) AS totalCnEn
+       FROM user_word_records r
+       WHERE r.user_id = ?`
+    )
+    .get(userId);
+
+  const totalDictSuccess = dictStats.totalEnCn;
+  const totalRemembered = wordStats.totalRemembered;
+  const accuracy = totalRemembered > 0
+    ? Math.round((totalDictSuccess / totalRemembered) * 100) / 100
+    : 0;
+
+  // Today progress for CET4 (default)
+  let todayProgress = null;
+  if (checkin && checkin.last_checkin_date === today) {
+    todayProgress = getTodayProgress(userId, "CET4", today);
+  }
+
+  // Weekly stats (last 7 days)
+  const weekly = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const yy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const dateStr = `${yy}-${mm}-${dd}`;
+
+    const dayRow = db
+      .prepare(
+        `SELECT
+          COUNT(*) FILTER (WHERE memorized = 1) AS memorized,
+          COUNT(*) FILTER (WHERE dictation_en_cn = 1 OR dictation_cn_en = 1) AS dictation
+         FROM user_daily_progress
+         WHERE user_id = ? AND date = ?`
+      )
+      .get(userId, dateStr);
+
+    weekly.push({
+      date: dateStr,
+      memorized: dayRow ? dayRow.memorized : 0,
+      dictation: dayRow ? dayRow.dictation : 0
+    });
+  }
+
+  // Weak words (lowest remember_count, for review)
+  const weakWords = db
+    .prepare(
+      `SELECT w.id, w.word, w.phonetic, w.meaning, w.level,
+        COALESCE(r.remember_count, 0) AS count
+       FROM words w
+       LEFT JOIN user_word_records r ON r.word_id = w.id AND r.user_id = ?
+       WHERE w.is_high_freq = 1 AND COALESCE(r.remember_count, 0) < 3
+       ORDER BY COALESCE(r.remember_count, 0) ASC, RANDOM()
+       LIMIT 10`
+    )
+    .all(userId);
+
+  // Badge
+  const totalWords = wordStats.totalWords;
+  let badge = { level: "bronze", name: "青铜", icon: "" };
+  if (totalWords >= 500) badge = { level: "diamond", name: "钻石", icon: "" };
+  else if (totalWords >= 300) badge = { level: "gold", name: "黄金", icon: "" };
+  else if (totalWords >= 100) badge = { level: "silver", name: "白银", icon: "" };
+
+  return res.json({
+    streak,
+    words: {
+      totalRemembered: wordStats.totalRemembered,
+      cet4Remembered: wordStats.cet4Remembered,
+      cet6Remembered: wordStats.cet6Remembered,
+      distinctWords: wordStats.totalWords,
+      retentionRate
+    },
+    dictation: {
+      totalEnCn: dictStats.totalEnCn,
+      totalCnEn: dictStats.totalCnEn,
+      accuracy
+    },
+    today: todayProgress,
+    weekly,
+    weakWords,
+    badge
+  });
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use((err, _req, res, _next) => {
@@ -749,6 +1292,50 @@ function initDatabase() {
       FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
       FOREIGN KEY(word_id) REFERENCES words(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS grammar_points (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      pattern TEXT DEFAULT '',
+      explanation TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS grammar_examples (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      grammar_id INTEGER NOT NULL,
+      sentence_en TEXT NOT NULL,
+      sentence_zh TEXT NOT NULL,
+      note TEXT DEFAULT '',
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      FOREIGN KEY(grammar_id) REFERENCES grammar_points(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_checkins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL UNIQUE,
+      last_checkin_date TEXT NOT NULL,
+      consecutive_days INTEGER DEFAULT 1,
+      total_days INTEGER DEFAULT 1,
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_daily_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      date TEXT NOT NULL,
+      level TEXT NOT NULL,
+      word_id INTEGER NOT NULL,
+      memorized INTEGER DEFAULT 0,
+      dictation_en_cn INTEGER DEFAULT 0,
+      dictation_cn_en INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(user_id, date, level, word_id),
+      FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY(word_id) REFERENCES words(id) ON DELETE CASCADE
+    );
+
   `);
 
   ensureWordsColumns();
@@ -774,6 +1361,32 @@ function seedWords() {
   });
 
   insertMany();
+}
+
+function seedGrammar() {
+  const countRow = db.prepare("SELECT COUNT(*) AS count FROM grammar_points").get();
+  if (countRow.count > 0) {
+    return;
+  }
+
+  const insertPoint = db.prepare(
+    "INSERT INTO grammar_points (category, title, pattern, explanation) VALUES (?, ?, ?, ?)"
+  );
+  const insertExample = db.prepare(
+    "INSERT INTO grammar_examples (grammar_id, sentence_en, sentence_zh, note, sort_order) VALUES (?, ?, ?, ?, ?)"
+  );
+
+  const runSeed = db.transaction(() => {
+    GRAMMAR_SEED.forEach((point) => {
+      const result = insertPoint.run(point.category, point.title, point.pattern, point.explanation);
+      const grammarId = result.lastInsertRowid;
+      point.examples.forEach((example, index) => {
+        insertExample.run(grammarId, example.sentence_en, example.sentence_zh, example.note || "", index);
+      });
+    });
+  });
+
+  runSeed();
 }
 
 function seedAdmin() {

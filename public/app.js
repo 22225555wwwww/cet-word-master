@@ -33,6 +33,18 @@ const state = {
     feedbackText: "答对后会自动计入记住次数和成功默写次数。",
     feedbackType: "info",
     answerRevealed: false
+  },
+  daily: {
+    level: "CET4",
+    loaded: false,
+    words: [],
+    dictationMode: "cn-en",
+    dictationQueue: [],
+    dictationIndex: 0,
+    dictationAnswerRevealed: false,
+    feedbackText: "",
+    feedbackType: "info",
+    summaryShown: false
   }
 };
 
@@ -41,6 +53,7 @@ const els = {
   appPanel: document.getElementById("app-panel"),
   userInfo: document.getElementById("user-info"),
   vocabLink: document.getElementById("vocab-link"),
+  grammarLink: document.getElementById("grammar-link"),
   adminLink: document.getElementById("admin-link"),
   logoutBtn: document.getElementById("logout-btn"),
   authMsg: document.getElementById("auth-msg"),
@@ -78,7 +91,32 @@ const els = {
   quizDontKnowBtn: document.getElementById("quiz-dont-know"),
   quizRememberAfterShowBtn: document.getElementById("quiz-remember-after-show"),
   quizAnswer: document.getElementById("quiz-answer"),
-  quizFeedback: document.getElementById("quiz-feedback")
+  quizFeedback: document.getElementById("quiz-feedback"),
+  // Daily words
+  personalLink: document.getElementById("personal-link"),
+  dailyPanel: document.getElementById("daily-panel"),
+  dailyLoading: document.getElementById("daily-loading"),
+  dailyContent: document.getElementById("daily-content"),
+  dailyStreak: document.getElementById("daily-streak"),
+  dailyProgressBar: document.getElementById("daily-progress-bar"),
+  dailyProgressText: document.getElementById("daily-progress-text"),
+  dailyWordGrid: document.getElementById("daily-word-grid"),
+  dailyMemorizePhase: document.getElementById("daily-memorize-phase"),
+  dailyDictationPhase: document.getElementById("daily-dictation-phase"),
+  dailyDictCnEnBtn: document.getElementById("daily-dict-cn-en"),
+  dailyDictEnCnBtn: document.getElementById("daily-dict-en-cn"),
+  dailyDictModeTip: document.getElementById("daily-dict-mode-tip"),
+  dailyDictQuestion: document.getElementById("daily-dict-question"),
+  dailyDictSub: document.getElementById("daily-dict-sub"),
+  dailyDictInput: document.getElementById("daily-dict-input"),
+  dailyDictSubmit: document.getElementById("daily-dict-submit"),
+  dailyDictNext: document.getElementById("daily-dict-next"),
+  dailyDictShowAnswer: document.getElementById("daily-dict-show-answer"),
+  dailyDictAnswer: document.getElementById("daily-dict-answer"),
+  dailyDictFeedback: document.getElementById("daily-dict-feedback"),
+  dailySummary: document.getElementById("daily-summary"),
+  dailySummaryText: document.getElementById("daily-summary-text"),
+  dailySummaryContinue: document.getElementById("daily-summary-continue")
 };
 
 function formatDateTime(dateLike) {
@@ -345,6 +383,8 @@ function renderUserArea() {
   if (!state.user) {
     els.userInfo.textContent = "未登录";
     els.vocabLink.classList.add("hidden");
+    els.grammarLink.classList.add("hidden");
+    els.personalLink.classList.add("hidden");
     els.adminLink.classList.add("hidden");
     els.logoutBtn.classList.add("hidden");
     return;
@@ -353,6 +393,8 @@ function renderUserArea() {
   const roleText = state.user.role === "admin" ? "管理员" : "普通用户";
   els.userInfo.textContent = `${state.user.username}（${roleText}）`;
   els.vocabLink.classList.remove("hidden");
+  els.grammarLink.classList.remove("hidden");
+  els.personalLink.classList.remove("hidden");
   els.logoutBtn.classList.remove("hidden");
 
   if (state.user.role === "admin") {
@@ -526,6 +568,15 @@ async function switchLevel(level) {
     await loadWords(level);
   }
   resetQuizForCurrentLevel();
+
+  // Reload daily words for this level
+  state.daily.summaryShown = false;
+  const today = await loadDaily(level);
+  if (today) {
+    state.daily.loaded = true;
+    renderDailyPanel(today, null);
+  }
+
   renderApp();
 
   // Animate back in
@@ -586,6 +637,15 @@ async function bootstrapLoggedInData() {
   state.quiz.total = 0;
   state.quiz.correct = 0;
   resetQuizForCurrentLevel();
+
+  // Load daily words
+  const today = await loadDaily("CET4");
+  if (today) {
+    state.daily.loaded = true;
+    state.daily.summaryShown = false;
+    const streakRes = await api("/api/stats");
+    renderDailyPanel(today, streakRes.streak);
+  }
 }
 
 async function handleLoginSubmit(event) {
@@ -854,8 +914,395 @@ async function logout() {
   state.quiz.total = 0;
   state.quiz.correct = 0;
   state.quiz.currentWordId = null;
+  state.daily.loaded = false;
+  state.daily.words = [];
   renderUserArea();
   enterLoggedOutState();
+}
+
+// ===== Daily Words =====
+
+function shuffleArray(arr) {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+function renderDailyProgress(today) {
+  const { memorized, total, dictationEnCn, dictationCnEn, phase } = today;
+  const pct = total > 0 ? Math.round((memorized / total) * 100) : 0;
+  els.dailyProgressBar.style.width = pct + "%";
+
+  if (phase === "memorize") {
+    els.dailyProgressText.textContent = `已记 ${memorized} / ${total}`;
+  } else if (phase === "dictation") {
+    const dictDone = dictationEnCn + dictationCnEn;
+    const dictTotal = total * 2;
+    els.dailyProgressText.textContent = `默写 ${dictDone} / ${dictTotal}`;
+  }
+}
+
+function renderDailyWordGrid() {
+  const { words, dictationMode } = state.daily;
+  const allMemorized = words.every((w) => w.memorized);
+
+  els.dailyWordGrid.innerHTML = words
+    .map((w) => {
+      const done = w.memorized;
+      let statusText = "";
+      let statusClass = "";
+      if (done && w.dictationEnCn && w.dictationCnEn) {
+        statusText = "已掌握";
+        statusClass = "daily-word-mastered";
+      } else if (done && (w.dictationEnCn || w.dictationCnEn)) {
+        statusText = "默写中";
+        statusClass = "daily-word-dictating";
+      } else if (done) {
+        statusText = "已记";
+        statusClass = "daily-word-done";
+      }
+
+      return `
+        <div class="daily-word-chip ${statusClass}" data-word-id="${w.id}">
+          <div class="daily-word-main">
+            <span class="daily-word-en">${w.word}</span>
+            ${w.phonetic ? `<span class="daily-word-phonetic">${w.phonetic}</span>` : ""}
+          </div>
+          <div class="daily-word-meaning">${w.meaning}</div>
+          ${statusText ? `<span class="daily-word-status">${statusText}</span>` : ""}
+          ${!done ? `<button class="primary small-btn daily-remember-btn" data-word-id="${w.id}">记住</button>` : ""}
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderDailyDictationCard() {
+  const { dictationQueue, dictationIndex, dictationMode, dictationAnswerRevealed, feedbackText, feedbackType } = state.daily;
+
+  if (!dictationQueue.length || dictationIndex >= dictationQueue.length) {
+    els.dailyDictModeTip.textContent = "默写完成";
+    els.dailyDictQuestion.textContent = "全部已默写完毕";
+    els.dailyDictSub.textContent = "";
+    els.dailyDictInput.disabled = true;
+    els.dailyDictSubmit.disabled = true;
+    els.dailyDictNext.disabled = true;
+    els.dailyDictShowAnswer.disabled = true;
+    els.dailyDictAnswer.classList.add("hidden");
+    els.dailyDictFeedback.textContent = "";
+    return;
+  }
+
+  const current = dictationQueue[dictationIndex];
+  const isCnEn = dictationMode === "cn-en";
+
+  els.dailyDictInput.disabled = false;
+  els.dailyDictSubmit.disabled = false;
+  els.dailyDictNext.disabled = false;
+  els.dailyDictShowAnswer.disabled = false;
+
+  if (isCnEn) {
+    els.dailyDictModeTip.textContent = "请根据中文释义写英文单词";
+    els.dailyDictQuestion.textContent = current.meaning;
+    els.dailyDictSub.textContent = `音标提示：${current.phonetic || "无"}`;
+    els.dailyDictInput.placeholder = "例如：abandon";
+  } else {
+    els.dailyDictModeTip.textContent = "请根据英文单词写中文释义";
+    els.dailyDictQuestion.textContent = current.word;
+    els.dailyDictSub.textContent = `音标：${current.phonetic || "无"}`;
+    els.dailyDictInput.placeholder = "例如：放弃";
+  }
+
+  if (dictationAnswerRevealed) {
+    els.dailyDictAnswer.classList.remove("hidden");
+    els.dailyDictAnswer.textContent = `答案：${isCnEn ? current.word : current.meaning}`;
+  } else {
+    els.dailyDictAnswer.classList.add("hidden");
+    els.dailyDictAnswer.textContent = "";
+  }
+
+  els.dailyDictFeedback.textContent = feedbackText;
+  els.dailyDictFeedback.classList.remove("feedback-success", "feedback-error");
+  if (feedbackType === "success") {
+    els.dailyDictFeedback.classList.add("feedback-success");
+  }
+  if (feedbackType === "error") {
+    els.dailyDictFeedback.classList.add("feedback-error");
+  }
+}
+
+function renderDailyDictationModeButtons() {
+  const isCnEn = state.daily.dictationMode === "cn-en";
+  els.dailyDictCnEnBtn.classList.toggle("active", isCnEn);
+  els.dailyDictEnCnBtn.classList.toggle("active", !isCnEn);
+  els.dailyDictCnEnBtn.setAttribute("aria-selected", String(isCnEn));
+  els.dailyDictEnCnBtn.setAttribute("aria-selected", String(!isCnEn));
+  moveSlider("daily-dictation-segment", isCnEn ? "#daily-dict-cn-en" : "#daily-dict-en-cn");
+}
+
+function showDailyPhase(phase) {
+  if (phase === "memorize") {
+    els.dailyMemorizePhase.classList.remove("hidden");
+    els.dailyDictationPhase.classList.add("hidden");
+    els.dailySummary.classList.add("hidden");
+  } else if (phase === "dictation") {
+    els.dailyMemorizePhase.classList.remove("hidden");
+    els.dailyDictationPhase.classList.remove("hidden");
+    els.dailySummary.classList.add("hidden");
+  } else if (phase === "summary") {
+    els.dailyMemorizePhase.classList.remove("hidden");
+    els.dailyDictationPhase.classList.add("hidden");
+    els.dailySummary.classList.remove("hidden");
+  }
+}
+
+function renderDailyPanel(today, streak) {
+  if (!today || !today.words.length) {
+    els.dailyLoading.textContent = "暂无今日任务";
+    return;
+  }
+
+  els.dailyLoading.classList.add("hidden");
+  els.dailyContent.classList.remove("hidden");
+
+  if (streak) {
+    els.dailyStreak.textContent = `连续 ${streak.consecutiveDays} 天 | 累计 ${streak.totalDays} 天`;
+  }
+
+  state.daily.words = today.words;
+  state.daily.level = today.level;
+  renderDailyProgress(today);
+  renderDailyWordGrid();
+  renderDailyDictationModeButtons();
+
+  if (state.daily.summaryShown) {
+    showDailyPhase("summary");
+    return;
+  }
+
+  if (today.phase === "dictation") {
+    showDailyPhase("dictation");
+    buildDailyDictationQueue();
+    renderDailyDictationCard();
+  } else {
+    showDailyPhase("memorize");
+  }
+}
+
+function buildDailyDictationQueue() {
+  const { words, dictationMode } = state.daily;
+  // For cn-en dictation, include words not yet passed cn-en; for en-cn, not yet passed en-cn
+  const field = dictationMode === "cn-en" ? "dictationCnEn" : "dictationEnCn";
+  const queue = words.filter((w) => !w[field]);
+  state.daily.dictationQueue = shuffleArray(queue);
+  state.daily.dictationIndex = 0;
+}
+
+async function loadDaily(level) {
+  try {
+    const data = await api(`/api/daily/today?level=${encodeURIComponent(level)}`);
+    return data.today;
+  } catch (error) {
+    els.dailyLoading.textContent = `加载失败：${error.message}`;
+    return null;
+  }
+}
+
+async function handleDailyRemember(wordId) {
+  try {
+    const data = await api("/api/daily/memorize", {
+      method: "POST",
+      body: { wordId, level: state.daily.level }
+    });
+    const today = data.today;
+
+    // Also reload records for quiz section
+    await loadRecords();
+
+    renderDailyProgress(today);
+    state.daily.words = today.words;
+    renderDailyWordGrid();
+    renderRecords();
+    renderDictationRecords();
+
+    if (today.phase === "dictation") {
+      showDailyPhase("dictation");
+      buildDailyDictationQueue();
+      renderDailyDictationCard();
+    }
+  } catch (error) {
+    alert(error.message);
+  }
+}
+
+function checkDailyDictationAnswer(word, answer) {
+  const trimmed = String(answer || "").trim();
+  if (!trimmed) {
+    return { correct: false, reason: "请输入答案" };
+  }
+
+  if (state.daily.dictationMode === "cn-en") {
+    const ok = normalizeEnglish(trimmed) === normalizeEnglish(word.word);
+    return { correct: ok, expected: word.word };
+  }
+
+  const inputNorm = normalizeChinese(trimmed);
+  const fullMeaningNorm = normalizeChinese(word.meaning);
+  const tokenNorms = splitMeaningTokens(word.meaning).map((item) => normalizeChinese(item));
+
+  const tokenMatch = tokenNorms.some(
+    (token) => inputNorm === token || token.includes(inputNorm) || inputNorm.includes(token)
+  );
+
+  const ok =
+    inputNorm === fullMeaningNorm ||
+    fullMeaningNorm.includes(inputNorm) ||
+    inputNorm.includes(fullMeaningNorm) ||
+    tokenMatch;
+
+  return { correct: ok, expected: word.meaning };
+}
+
+async function submitDailyDictationAnswer() {
+  const { dictationQueue, dictationIndex, dictationMode } = state.daily;
+  if (dictationIndex >= dictationQueue.length) return;
+
+  const current = dictationQueue[dictationIndex];
+  const answer = els.dailyDictInput.value;
+  const result = checkDailyDictationAnswer(current, answer);
+
+  if (result.reason) {
+    state.daily.feedbackText = result.reason;
+    state.daily.feedbackType = "error";
+    renderDailyDictationCard();
+    return;
+  }
+
+  if (result.correct) {
+    state.daily.feedbackText = `回答正确！答案：${result.expected}`;
+    state.daily.feedbackType = "success";
+    state.daily.dictationAnswerRevealed = false;
+
+    try {
+      const data = await api("/api/daily/dictation", {
+        method: "POST",
+        body: { wordId: current.id, level: state.daily.level, mode: dictationMode }
+      });
+      const today = data.today;
+      state.daily.words = today.words;
+      renderDailyProgress(today);
+      renderDailyWordGrid();
+
+      await loadRecords();
+      renderRecords();
+      renderDictationRecords();
+
+      // Move to next or check if all done
+      advanceDailyDictationOrCheck(today);
+    } catch (error) {
+      state.daily.feedbackText = `正确但记录失败：${error.message}`;
+      state.daily.feedbackType = "error";
+      renderDailyDictationCard();
+    }
+  } else {
+    state.daily.feedbackText = `回答不正确，正确答案：${result.expected}`;
+    state.daily.feedbackType = "error";
+    state.daily.dictationAnswerRevealed = true;
+    renderDailyDictationCard();
+  }
+}
+
+function advanceDailyDictationOrCheck(today) {
+  const { dictationQueue, dictationIndex, dictationMode } = state.daily;
+  const field = dictationMode === "cn-en" ? "dictationCnEn" : "dictationEnCn";
+  const remaining = dictationQueue.filter((w, i) => i > dictationIndex && !w[field]);
+
+  if (remaining.length === 0) {
+    // Check if both dictation modes are complete
+    if (today.dictationEnCn >= today.total && today.dictationCnEn >= today.total) {
+      showDailySummary(today);
+    } else {
+      // Switch to the other mode
+      const otherMode = dictationMode === "cn-en" ? "en-cn" : "cn-en";
+      state.daily.dictationMode = otherMode;
+      renderDailyDictationModeButtons();
+      buildDailyDictationQueue();
+      state.daily.dictationAnswerRevealed = false;
+      state.daily.feedbackText = "英译中完成！现在切换到英译中。";
+      state.daily.feedbackType = "info";
+      els.dailyDictInput.value = "";
+      renderDailyDictationCard();
+    }
+  } else {
+    // Move to next in queue
+    state.daily.dictationIndex = dictationIndex + 1;
+    state.daily.dictationAnswerRevealed = false;
+    state.daily.feedbackText = "";
+    state.daily.feedbackType = "info";
+    els.dailyDictInput.value = "";
+    renderDailyDictationCard();
+    els.dailyDictInput.focus();
+  }
+}
+
+function nextDailyDictationQuestion() {
+  const { dictationQueue, dictationIndex } = state.daily;
+  if (dictationQueue.length === 0) return;
+
+  const nextIdx = (dictationIndex + 1) % dictationQueue.length;
+  state.daily.dictationIndex = nextIdx;
+  state.daily.dictationAnswerRevealed = false;
+  state.daily.feedbackText = "已切换新题目。";
+  state.daily.feedbackType = "info";
+  els.dailyDictInput.value = "";
+  renderDailyDictationCard();
+  els.dailyDictInput.focus();
+}
+
+function showDailyAnswer() {
+  state.daily.dictationAnswerRevealed = true;
+  state.daily.feedbackText = "已显示答案。";
+  state.daily.feedbackType = "info";
+  renderDailyDictationCard();
+}
+
+function showDailySummary(today) {
+  state.daily.summaryShown = true;
+  showDailyPhase("summary");
+
+  const totalDict = today.dictationEnCn + today.dictationCnEn;
+  const totalPossible = today.total * 2;
+  const pct = totalPossible > 0 ? Math.round((totalDict / totalPossible) * 100) : 0;
+  els.dailySummaryText.textContent =
+    `今日记住 ${today.memorized} 词，默写正确 ${totalDict} / ${totalPossible}，正确率 ${pct}%`;
+}
+
+function switchDailyDictationMode(mode) {
+  state.daily.dictationMode = mode;
+  renderDailyDictationModeButtons();
+  buildDailyDictationQueue();
+  state.daily.dictationAnswerRevealed = false;
+  state.daily.feedbackText = "";
+  state.daily.feedbackType = "info";
+  els.dailyDictInput.value = "";
+  renderDailyDictationCard();
+  els.dailyDictInput.focus();
+}
+
+async function dailyCheckin(level) {
+  try {
+    const data = await api("/api/daily/checkin", {
+      method: "POST",
+      body: { level }
+    });
+    return data.today;
+  } catch (error) {
+    els.dailyLoading.textContent = `签到失败：${error.message}`;
+    return null;
+  }
 }
 
 function bindEvents() {
@@ -895,6 +1342,39 @@ function bindEvents() {
   });
 
   els.clearBtn.addEventListener("click", clearRecords);
+
+  // Daily words events
+  els.dailyWordGrid.addEventListener("click", (event) => {
+    const btn = event.target.closest(".daily-remember-btn");
+    if (!btn) return;
+    const wordId = Number(btn.dataset.wordId);
+    if (Number.isInteger(wordId)) {
+      handleDailyRemember(wordId);
+    }
+  });
+
+  els.dailyDictCnEnBtn.addEventListener("click", () => switchDailyDictationMode("cn-en"));
+  els.dailyDictEnCnBtn.addEventListener("click", () => switchDailyDictationMode("en-cn"));
+
+  els.dailyDictSubmit.addEventListener("click", () => {
+    submitDailyDictationAnswer().catch((error) => alert(error.message));
+  });
+  els.dailyDictNext.addEventListener("click", nextDailyDictationQuestion);
+  els.dailyDictShowAnswer.addEventListener("click", showDailyAnswer);
+  els.dailyDictInput.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    submitDailyDictationAnswer().catch((error) => alert(error.message));
+  });
+
+  els.dailySummaryContinue.addEventListener("click", () => {
+    els.dailyPanel.scrollIntoView({ behavior: "smooth" });
+  });
+
+  // Daily dictation slider
+  window.addEventListener("resize", () => {
+    moveSlider("daily-dictation-segment", state.daily.dictationMode === "cn-en" ? "#daily-dict-cn-en" : "#daily-dict-en-cn");
+  });
 }
 
 async function init() {
@@ -912,6 +1392,7 @@ async function init() {
     moveSlider("level-segment", state.level === "CET4" ? "#btn-cet4" : "#btn-cet6");
     moveSlider("order-segment", state.orderMode === "sequential" ? "#order-sequential" : "#order-random");
     moveSlider("quiz-segment", state.quiz.mode === "cn-en" ? "#quiz-mode-cn-en" : "#quiz-mode-en-cn");
+    moveSlider("daily-dictation-segment", state.daily.dictationMode === "cn-en" ? "#daily-dict-cn-en" : "#daily-dict-en-cn");
   });
 
   try {

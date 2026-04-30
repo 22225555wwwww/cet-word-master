@@ -2,7 +2,9 @@ const state = {
   me: null,
   users: [],
   words: [],
-  filterLevel: "ALL"
+  filterLevel: "ALL",
+  grammarPoints: [],
+  grammarExamples: new Map()
 };
 
 const els = {
@@ -19,7 +21,11 @@ const els = {
   refreshWords: document.getElementById("refresh-words"),
   addWordForm: document.getElementById("add-word-form"),
   wordsMsg: document.getElementById("words-msg"),
-  wordsBody: document.getElementById("words-body")
+  wordsBody: document.getElementById("words-body"),
+  refreshGrammar: document.getElementById("refresh-grammar"),
+  addGrammarForm: document.getElementById("add-grammar-form"),
+  grammarMsg: document.getElementById("grammar-msg"),
+  grammarPointsList: document.getElementById("grammar-points-list")
 };
 
 async function api(url, options = {}) {
@@ -259,6 +265,188 @@ async function handleAddWord(event) {
   }
 }
 
+function showGrammarMessage(text, isError = false) {
+  els.grammarMsg.textContent = text || "";
+  els.grammarMsg.style.color = isError ? "#8f1d2c" : "#2f4f3f";
+}
+
+function renderGrammarPoints() {
+  if (!state.grammarPoints.length) {
+    els.grammarPointsList.innerHTML = '<p class="hint">暂无语法点</p>';
+    return;
+  }
+
+  const grouped = new Map();
+  state.grammarPoints.forEach((point) => {
+    if (!grouped.has(point.category)) {
+      grouped.set(point.category, []);
+    }
+    grouped.get(point.category).push(point);
+  });
+
+  let html = "";
+  grouped.forEach((points, category) => {
+    html += `<div style="margin-top:16px;"><p class="mode-label">${category}</p>`;
+    points.forEach((point) => {
+      const examples = state.grammarExamples.get(point.id) || [];
+      html += `
+        <div class="grammar-card" style="margin-top:8px;">
+          <div class="grammar-card-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
+            <div>
+              <p style="margin:0;font-weight:700;color:#0f172a;">${point.title}</p>
+              ${point.pattern ? `<p style="margin:4px 0 0;font-size:13px;color:var(--primary-strong);font-family:'Space Grotesk',monospace;">${point.pattern}</p>` : ""}
+              <p style="margin:4px 0 0;font-size:12px;color:var(--muted);">${point.explanation}</p>
+            </div>
+            <div class="inline-actions">
+              <button class="secondary small-btn edit-grammar-btn" data-point-id="${point.id}">编辑</button>
+              <button class="danger small-btn delete-grammar-btn" data-point-id="${point.id}">删除</button>
+            </div>
+          </div>
+          <div style="padding:0 20px 14px;border-top:1px solid rgba(37,99,235,0.06);margin-top:10px;padding-top:12px;">
+            <p style="font-size:12px;color:var(--muted);margin-bottom:8px;">例句 (${examples.length})</p>
+            ${examples.map((ex) => `
+              <div style="margin-bottom:8px;padding:8px 12px;background:rgba(37,99,235,0.03);border-radius:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                <div>
+                  <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">${ex.sentence_en}</p>
+                  <p style="margin:2px 0 0;font-size:12px;color:var(--muted);">${ex.sentence_zh}</p>
+                  ${ex.note ? `<p style="margin:2px 0 0;font-size:11px;color:var(--primary);font-style:italic;">${ex.note}</p>` : ""}
+                </div>
+                <button class="danger small-btn delete-example-btn" data-example-id="${ex.id}" data-point-id="${point.id}">删除</button>
+              </div>
+            `).join("")}
+            <form class="add-example-form" data-point-id="${point.id}" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+              <input name="sentence_en" placeholder="英文例句" required maxlength="300" style="flex:1;min-width:140px;padding:8px 10px;font-size:13px;" />
+              <input name="sentence_zh" placeholder="中文翻译" required maxlength="300" style="flex:1;min-width:140px;padding:8px 10px;font-size:13px;" />
+              <input name="note" placeholder="说明(可选)" maxlength="100" style="flex:0 0 120px;min-width:100px;padding:8px 10px;font-size:13px;" />
+              <button class="primary small-btn" type="submit">+例句</button>
+            </form>
+          </div>
+        </div>
+      `;
+    });
+    html += "</div>";
+  });
+
+  els.grammarPointsList.innerHTML = html;
+}
+
+async function loadGrammarPoints() {
+  const data = await api("/api/grammar");
+  state.grammarPoints = data.points || [];
+  state.grammarExamples = new Map();
+
+  for (const point of state.grammarPoints) {
+    try {
+      const detail = await api(`/api/grammar/${point.id}`);
+      state.grammarExamples.set(point.id, detail.examples || []);
+    } catch (_) {
+      state.grammarExamples.set(point.id, []);
+    }
+  }
+}
+
+async function handleAddGrammarPoint(event) {
+  event.preventDefault();
+  const formData = new FormData(event.currentTarget);
+
+  try {
+    await api("/api/admin/grammar", {
+      method: "POST",
+      body: {
+        category: String(formData.get("category") || "").trim(),
+        title: String(formData.get("title") || "").trim(),
+        pattern: String(formData.get("pattern") || "").trim(),
+        explanation: String(formData.get("explanation") || "").trim()
+      }
+    });
+
+    event.currentTarget.reset();
+    showGrammarMessage("语法点新增成功");
+    await loadGrammarPoints();
+    renderGrammarPoints();
+  } catch (error) {
+    showGrammarMessage(error.message, true);
+  }
+}
+
+async function handleEditGrammarPoint(pointId) {
+  const point = state.grammarPoints.find((p) => p.id === pointId);
+  if (!point) return;
+
+  const category = window.prompt("分类", point.category);
+  if (category === null) return;
+  const title = window.prompt("标题", point.title);
+  if (title === null) return;
+  const pattern = window.prompt("句型结构", point.pattern || "");
+  if (pattern === null) return;
+  const explanation = window.prompt("详细解释", point.explanation);
+  if (explanation === null) return;
+
+  try {
+    await api(`/api/admin/grammar/${pointId}`, {
+      method: "PUT",
+      body: {
+        category: category.trim(),
+        title: title.trim(),
+        pattern: pattern.trim(),
+        explanation: explanation.trim()
+      }
+    });
+    showGrammarMessage("语法点更新成功");
+    await loadGrammarPoints();
+    renderGrammarPoints();
+  } catch (error) {
+    showGrammarMessage(error.message, true);
+  }
+}
+
+async function handleDeleteGrammarPoint(pointId) {
+  if (!window.confirm("确定要删除该语法点及其所有例句吗？")) return;
+
+  try {
+    await api(`/api/admin/grammar/${pointId}`, { method: "DELETE" });
+    showGrammarMessage("删除成功");
+    await loadGrammarPoints();
+    renderGrammarPoints();
+  } catch (error) {
+    showGrammarMessage(error.message, true);
+  }
+}
+
+async function handleAddExample(pointId, form) {
+  const formData = new FormData(form);
+
+  try {
+    await api(`/api/admin/grammar/${pointId}/examples`, {
+      method: "POST",
+      body: {
+        sentence_en: String(formData.get("sentence_en") || "").trim(),
+        sentence_zh: String(formData.get("sentence_zh") || "").trim(),
+        note: String(formData.get("note") || "").trim()
+      }
+    });
+    form.reset();
+    showGrammarMessage("例句添加成功");
+    await loadGrammarPoints();
+    renderGrammarPoints();
+  } catch (error) {
+    showGrammarMessage(error.message, true);
+  }
+}
+
+async function handleDeleteExample(exampleId) {
+  if (!window.confirm("确定要删除该例句吗？")) return;
+
+  try {
+    await api(`/api/admin/examples/${exampleId}`, { method: "DELETE" });
+    showGrammarMessage("例句已删除");
+    await loadGrammarPoints();
+    renderGrammarPoints();
+  } catch (error) {
+    showGrammarMessage(error.message, true);
+  }
+}
+
 async function logout() {
   try {
     await api("/api/auth/logout", { method: "POST" });
@@ -314,6 +502,40 @@ function bindEvents() {
       handleWordDelete(wordId);
     }
   });
+
+  els.refreshGrammar.addEventListener("click", () => {
+    loadGrammarPoints()
+      .then(() => renderGrammarPoints())
+      .catch((error) => showGrammarMessage(error.message, true));
+  });
+
+  els.addGrammarForm.addEventListener("submit", handleAddGrammarPoint);
+
+  els.grammarPointsList.addEventListener("click", (event) => {
+    const editBtn = event.target.closest(".edit-grammar-btn");
+    if (editBtn) {
+      handleEditGrammarPoint(Number(editBtn.dataset.pointId));
+      return;
+    }
+
+    const deleteBtn = event.target.closest(".delete-grammar-btn");
+    if (deleteBtn) {
+      handleDeleteGrammarPoint(Number(deleteBtn.dataset.pointId));
+      return;
+    }
+
+    const delExBtn = event.target.closest(".delete-example-btn");
+    if (delExBtn) {
+      handleDeleteExample(Number(delExBtn.dataset.exampleId));
+    }
+  });
+
+  els.grammarPointsList.addEventListener("submit", (event) => {
+    const form = event.target.closest(".add-example-form");
+    if (!form) return;
+    event.preventDefault();
+    handleAddExample(Number(form.dataset.pointId), form);
+  });
 }
 
 async function init() {
@@ -341,7 +563,8 @@ async function init() {
     }
 
     showAdminPanels();
-    await Promise.all([loadOverview(), loadUsers(), loadWords()]);
+    await Promise.all([loadOverview(), loadUsers(), loadWords(), loadGrammarPoints()]);
+    renderGrammarPoints();
   } catch (error) {
     showDenied(`加载后台失败：${error.message}`);
   }

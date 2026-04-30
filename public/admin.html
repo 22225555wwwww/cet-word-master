@@ -138,6 +138,37 @@
             </table>
           </div>
         </section>
+
+        <section class="panel">
+          <div class="section-title-row">
+            <h2>语法管理</h2>
+            <button id="refresh-grammar" class="secondary">刷新</button>
+          </div>
+
+          <form id="add-grammar-form" class="grid-form">
+            <label>
+              分类
+              <input name="category" required maxlength="30" placeholder="如: 时态" />
+            </label>
+            <label>
+              标题
+              <input name="title" required maxlength="100" placeholder="如: 一般现在时" />
+            </label>
+            <label>
+              句型结构
+              <input name="pattern" maxlength="200" placeholder="如: 主语 + V原/V-s/es" />
+            </label>
+            <label>
+              详细解释
+              <input name="explanation" required maxlength="2000" placeholder="语法解释..." />
+            </label>
+            <button class="primary" type="submit">新增语法点</button>
+          </form>
+
+          <p id="grammar-msg" class="hint"></p>
+
+          <div id="grammar-points-list"></div>
+        </section>
       </section>
     </main>
 

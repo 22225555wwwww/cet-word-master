@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>语法教学 - CET 学习站</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="effects.css" />
+  </head>
+  <body>
+    <div class="bg-shape shape-a"></div>
+    <div class="bg-shape shape-b"></div>
+
+    <main class="container">
+      <header class="hero">
+        <div class="top-row">
+          <div>
+            <p class="badge">Grammar</p>
+            <h1>英语语法教学库</h1>
+            <p>按分类学习 CET 核心语法点，每个语法点配有具体例句。</p>
+          </div>
+          <div class="account-box">
+            <p id="user-info" class="muted">未登录</p>
+            <div class="account-actions">
+              <a class="link-btn" href="/index.html">返回学习页</a>
+              <a class="link-btn" href="/vocab.html">词汇表</a>
+              <a class="link-btn" href="/personal.html">个人数据</a>
+              <a id="admin-link" class="link-btn hidden" href="/admin.html">后台管理</a>
+              <button id="logout-btn" class="secondary">退出登录</button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="panel" aria-label="语法分类">
+        <h2>语法分类</h2>
+        <div id="category-list" class="mode-row" style="gap:8px;"></div>
+      </section>
+
+      <section class="panel" aria-label="语法点列表">
+        <div class="section-title-row">
+          <h2 id="list-title">全部语法点</h2>
+          <p id="list-stats" class="muted"></p>
+        </div>
+        <div id="grammar-list"></div>
+      </section>
+
+      <div id="detail-overlay" class="hidden">
+        <section class="panel" aria-label="语法点详情">
+          <div class="section-title-row">
+            <h2 id="detail-title"></h2>
+            <button id="detail-close" class="secondary">关闭</button>
+          </div>
+          <p class="badge" id="detail-category"></p>
+
+          <div id="detail-pattern-box" class="pattern-box" style="margin-top:14px;">
+            <p class="mode-label">句型结构</p>
+            <p id="detail-pattern" class="pattern-text"></p>
+          </div>
+
+          <div style="margin-top:14px;">
+            <p class="mode-label">详细解释</p>
+            <p id="detail-explanation" style="margin-top:6px;line-height:1.7;color:#334155;"></p>
+          </div>
+
+          <div style="margin-top:18px;">
+            <p class="mode-label">例句</p>
+            <ul id="detail-examples" style="list-style:none;margin:8px 0 0;padding:0;display:grid;gap:10px;">
+            </ul>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script src="effects.js"></script>
+    <script src="grammar.js"></script>
+  </body>
+</html>
