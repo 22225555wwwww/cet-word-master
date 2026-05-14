@@ -74,6 +74,16 @@ async function api(url, options) {
   return data;
 }
 
+function toTimestamp(dateLike) {
+  if (!dateLike) return 0;
+
+  var text = String(dateLike);
+  var normalized = text.indexOf("T") !== -1 ? text : text.replace(" ", "T") + "Z";
+  var d = new Date(normalized);
+  if (isNaN(d.getTime())) return 0;
+  return d.getTime();
+}
+
 function formatDateTime(dateLike) {
   if (!dateLike) return "-";
 
