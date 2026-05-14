@@ -677,6 +677,16 @@ tr:hover td {
   background: rgba(196, 181, 253, 0.25);
 }
 
+/* ===== Tab Content ===== */
+.tab-content {
+  animation: tab-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes tab-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ===== Hidden ===== */
 .hidden {
   display: none !important;

@@ -28,42 +28,6 @@ const els = {
   grammarPointsList: document.getElementById("grammar-points-list")
 };
 
-async function api(url, options = {}) {
-  const config = {
-    method: options.method || "GET",
-    headers: {},
-    credentials: "same-origin"
-  };
-
-  if (options.body !== undefined) {
-    config.headers["Content-Type"] = "application/json";
-    config.body = JSON.stringify(options.body);
-  }
-
-  const res = await fetch(url, config);
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data.message || `请求失败(${res.status})`);
-  }
-  return data;
-}
-
-function formatDateTime(dateLike) {
-  if (!dateLike) return "-";
-
-  const text = String(dateLike);
-  const normalized = text.includes("T") ? text : `${text.replace(" ", "T")}Z`;
-  const d = new Date(normalized);
-  if (Number.isNaN(d.getTime())) return text;
-
-  const yy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${yy}-${mm}-${dd} ${hh}:${mi}`;
-}
 
 function showMessage(text, isError = false) {
   els.wordsMsg.textContent = text || "";
@@ -93,8 +57,8 @@ function renderOverview(overview, hotWords) {
     .map(
       (row) => `
       <tr>
-        <td>${row.word}</td>
-        <td>${row.level === "CET4" ? "四级" : "六级"}</td>
+        <td>${escapeHtml(row.word)}</td>
+        <td>${escapeHtml(row.level === "CET4" ? "四级" : "六级")}</td>
         <td>${row.totalCount}</td>
       </tr>
     `
@@ -114,7 +78,7 @@ function renderUsers() {
       return `
       <tr>
         <td>${user.id}</td>
-        <td>${user.username}</td>
+        <td>${escapeHtml(user.username)}</td>
         <td>
           <select class="role-select" data-user-id="${user.id}" ${isSelf ? "disabled" : ""}>
             <option value="user" ${user.role === "user" ? "selected" : ""}>user</option>
@@ -145,9 +109,9 @@ function renderWords() {
       <tr>
         <td>${word.id}</td>
         <td>${word.level}</td>
-        <td>${word.word}</td>
+        <td>${escapeHtml(word.word)}</td>
         <td>${word.phonetic || "-"}</td>
-        <td>${word.meaning}</td>
+        <td>${escapeHtml(word.meaning)}</td>
         <td>${formatDateTime(word.createdAt)}</td>
         <td>
           <div class="inline-actions">
@@ -293,9 +257,9 @@ function renderGrammarPoints() {
         <div class="grammar-card" style="margin-top:8px;">
           <div class="grammar-card-header" style="display:flex;justify-content:space-between;align-items:flex-start;">
             <div>
-              <p style="margin:0;font-weight:700;color:#0f172a;">${point.title}</p>
-              ${point.pattern ? `<p style="margin:4px 0 0;font-size:13px;color:var(--primary-strong);font-family:'Space Grotesk',monospace;">${point.pattern}</p>` : ""}
-              <p style="margin:4px 0 0;font-size:12px;color:var(--muted);">${point.explanation}</p>
+              <p style="margin:0;font-weight:700;color:#0f172a;">${escapeHtml(point.title)}</p>
+              ${point.pattern ? `<p style="margin:4px 0 0;font-size:13px;color:var(--primary-strong);font-family:'Space Grotesk',monospace;">${escapeHtml(point.pattern)}</p>` : ""}
+              <p style="margin:4px 0 0;font-size:12px;color:var(--muted);">${escapeHtml(point.explanation)}</p>
             </div>
             <div class="inline-actions">
               <button class="secondary small-btn edit-grammar-btn" data-point-id="${point.id}">编辑</button>
@@ -307,9 +271,9 @@ function renderGrammarPoints() {
             ${examples.map((ex) => `
               <div style="margin-bottom:8px;padding:8px 12px;background:rgba(37,99,235,0.03);border-radius:8px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
                 <div>
-                  <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">${ex.sentence_en}</p>
-                  <p style="margin:2px 0 0;font-size:12px;color:var(--muted);">${ex.sentence_zh}</p>
-                  ${ex.note ? `<p style="margin:2px 0 0;font-size:11px;color:var(--primary);font-style:italic;">${ex.note}</p>` : ""}
+                  <p style="margin:0;font-size:14px;font-weight:600;color:#0f172a;">${escapeHtml(ex.sentence_en)}</p>
+                  <p style="margin:2px 0 0;font-size:12px;color:var(--muted);">${escapeHtml(ex.sentence_zh)}</p>
+                  ${ex.note ? `<p style="margin:2px 0 0;font-size:11px;color:var(--primary);font-style:italic;">${escapeHtml(ex.note)}</p>` : ""}
                 </div>
                 <button class="danger small-btn delete-example-btn" data-example-id="${ex.id}" data-point-id="${point.id}">删除</button>
               </div>
@@ -447,16 +411,8 @@ async function handleDeleteExample(exampleId) {
   }
 }
 
-async function logout() {
-  try {
-    await api("/api/auth/logout", { method: "POST" });
-  } catch (_error) {
-  }
-  window.location.href = "/index.html";
-}
-
 function bindEvents() {
-  els.logoutBtn.addEventListener("click", logout);
+  els.logoutBtn.addEventListener("click", function() { logout(); });
 
   els.refreshOverview.addEventListener("click", () => {
     loadOverview().catch((error) => alert(error.message));
@@ -541,33 +497,25 @@ function bindEvents() {
 async function init() {
   bindEvents();
 
-  try {
-    const auth = await api("/api/auth/me");
-    if (!auth.authenticated) {
-      showDenied("请先登录管理员账号，再访问后台。正在跳转... ");
-      setTimeout(() => {
+  state.me = await initAuth({
+    requireAdmin: true,
+    onFail: function(reason) {
+      var msg = reason === "unauthenticated"
+        ? "请先登录管理员账号，再访问后台。正在跳转... "
+        : "当前账号不是管理员。正在返回学习页...";
+      showDenied(msg);
+      setTimeout(function() {
         window.location.href = "/index.html";
       }, 1200);
-      return;
     }
+  });
+  if (!state.me) return;
 
-    state.me = auth.user;
-    els.adminUser.textContent = `${state.me.username}（${state.me.role}）`;
+  renderUserArea(state.me, { adminUser: els.adminUser });
 
-    if (state.me.role !== "admin") {
-      showDenied("当前账号不是管理员。正在返回学习页...");
-      setTimeout(() => {
-        window.location.href = "/index.html";
-      }, 1200);
-      return;
-    }
-
-    showAdminPanels();
-    await Promise.all([loadOverview(), loadUsers(), loadWords(), loadGrammarPoints()]);
-    renderGrammarPoints();
-  } catch (error) {
-    showDenied(`加载后台失败：${error.message}`);
-  }
+  showAdminPanels();
+  await Promise.all([loadOverview(), loadUsers(), loadWords(), loadGrammarPoints()]);
+  renderGrammarPoints();
 }
 
 init();

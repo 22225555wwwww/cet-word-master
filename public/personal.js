@@ -17,26 +17,6 @@ const els = {
   weakWordsBody: document.getElementById("weak-words-body")
 };
 
-async function api(url, options = {}) {
-  const config = {
-    method: options.method || "GET",
-    headers: {},
-    credentials: "same-origin"
-  };
-
-  if (options.body !== undefined) {
-    config.headers["Content-Type"] = "application/json";
-    config.body = JSON.stringify(options.body);
-  }
-
-  const res = await fetch(url, config);
-  const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data.message || `请求失败(${res.status})`);
-  }
-  return data;
-}
 
 function getBadgeEmoji(level) {
   const map = { bronze: "", silver: "", gold: "", diamond: "" };
@@ -165,9 +145,9 @@ function renderWeakWords() {
       (w) => `
       <tr>
         <td>${w.level === "CET4" ? "四级" : "六级"}</td>
-        <td>${w.word}</td>
+        <td>${escapeHtml(w.word)}</td>
         <td>${w.phonetic || "-"}</td>
-        <td>${w.meaning}</td>
+        <td>${escapeHtml(w.meaning)}</td>
         <td>${w.count}</td>
       </tr>
     `
@@ -183,54 +163,37 @@ function renderAll() {
   renderWeakWords();
 }
 
-function renderUserArea() {
-  if (!state.user) return;
-
-  const roleText = state.user.role === "admin" ? "管理员" : "普通用户";
-  els.userInfo.textContent = `${state.user.username}（${roleText}）`;
-
-  if (state.user.role === "admin") {
-    els.adminLink.classList.remove("hidden");
-  }
-}
-
-async function logout() {
-  try {
-    await api("/api/auth/logout", { method: "POST" });
-  } catch (_error) {}
-  window.location.href = "/index.html";
-}
-
 function bindEvents() {
-  els.logoutBtn.addEventListener("click", logout);
+  els.logoutBtn.addEventListener("click", function() { logout(); });
 }
 
 async function init() {
   bindEvents();
 
-  try {
-    const auth = await api("/api/auth/me");
-    if (!auth.authenticated) {
+  state.user = await initAuth({
+    onFail: function(_err) {
       els.loadingPanel.classList.add("hidden");
       els.denyPanel.classList.remove("hidden");
-      setTimeout(() => {
+      setTimeout(function() {
         window.location.href = "/index.html";
       }, 1200);
-      return;
     }
+  });
+  if (!state.user) return;
 
-    state.user = auth.user;
-    renderUserArea();
+  renderUserArea(state.user, els);
 
+  try {
     const stats = await api("/api/stats");
     state.stats = stats;
-
-    els.loadingPanel.classList.add("hidden");
-    els.statsPanel.classList.remove("hidden");
-    renderAll();
   } catch (error) {
-    els.loadingPanel.innerHTML = `<p class="hint" style="color:#8f1d2c;">加载失败：${error.message}</p>`;
+    els.loadingPanel.innerHTML = '<p class="hint" style="color:#8f1d2c;">加载失败：' + escapeHtml(error.message) + '</p>';
+    return;
   }
+
+  els.loadingPanel.classList.add("hidden");
+  els.statsPanel.classList.remove("hidden");
+  renderAll();
 }
 
 init();

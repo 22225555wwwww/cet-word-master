@@ -24,36 +24,6 @@ const els = {
   detailClose: document.getElementById("detail-close")
 };
 
-async function api(url, options = {}) {
-  const config = {
-    method: options.method || "GET",
-    headers: {},
-    credentials: "same-origin"
-  };
-  if (options.body !== undefined) {
-    config.headers["Content-Type"] = "application/json";
-    config.body = JSON.stringify(options.body);
-  }
-  const res = await fetch(url, config);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || `请求失败(${res.status})`);
-  return data;
-}
-
-function renderUserArea() {
-  if (!state.user) {
-    els.userInfo.textContent = "未登录";
-    els.adminLink.classList.add("hidden");
-    return;
-  }
-  const roleText = state.user.role === "admin" ? "管理员" : "普通用户";
-  els.userInfo.textContent = `${state.user.username}（${roleText}）`;
-  if (state.user.role === "admin") {
-    els.adminLink.classList.remove("hidden");
-  } else {
-    els.adminLink.classList.add("hidden");
-  }
-}
 
 function renderCategories() {
   const allActive = state.currentCategory === "all";
@@ -84,14 +54,14 @@ function renderList() {
         <article class="grammar-card ${isExpanded ? 'expanded' : ''}">
           <div class="grammar-card-header" data-point-id="${point.id}">
             <div>
-              <p class="level-tag">${point.category}</p>
-              <h3 class="grammar-title">${point.title}</h3>
+              <p class="level-tag">${escapeHtml(point.category)}</p>
+              <h3 class="grammar-title">${escapeHtml(point.title)}</h3>
             </div>
             <span class="expand-icon">${isExpanded ? '收起' : '展开'}</span>
           </div>
           <div class="grammar-card-body ${isExpanded ? '' : 'hidden'}">
-            ${point.pattern ? `<div class="pattern-box" style="margin-bottom:12px;"><p class="mode-label">句型结构</p><p class="pattern-text">${point.pattern}</p></div>` : ""}
-            <p style="line-height:1.7;color:#334155;">${point.explanation}</p>
+            ${point.pattern ? `<div class="pattern-box" style="margin-bottom:12px;"><p class="mode-label">句型结构</p><p class="pattern-text">${escapeHtml(point.pattern)}</p></div>` : ""}
+            <p style="line-height:1.7;color:#334155;">${escapeHtml(point.explanation)}</p>
             <p class="hint" style="margin-top:10px;">例句数: ${point.exampleCount} 条 — 点击"查看详情"查看完整例句</p>
             <button class="secondary small-btn view-detail-btn" data-point-id="${point.id}" style="margin-top:10px;">查看完整详情</button>
           </div>
@@ -135,9 +105,9 @@ async function showDetail(pointId) {
       .map(
         (ex) => `
         <li class="example-item">
-          <p class="example-en">${ex.sentence_en}</p>
-          <p class="example-zh">${ex.sentence_zh}</p>
-          ${ex.note ? `<p class="example-note">${ex.note}</p>` : ""}
+          <p class="example-en">${escapeHtml(ex.sentence_en)}</p>
+          <p class="example-zh">${escapeHtml(ex.sentence_zh)}</p>
+          ${ex.note ? `<p class="example-note">${escapeHtml(ex.note)}</p>` : ""}
         </li>
       `
       )
@@ -160,13 +130,8 @@ async function switchCategory(category) {
   renderList();
 }
 
-async function logout() {
-  try { await api("/api/auth/logout", { method: "POST" }); } catch (_) {}
-  window.location.href = "/index.html";
-}
-
 function bindEvents() {
-  els.logoutBtn.addEventListener("click", logout);
+  els.logoutBtn.addEventListener("click", function() { logout(); });
   els.detailClose.addEventListener("click", closeDetail);
 
   els.categoryList.addEventListener("click", (e) => {
@@ -201,22 +166,18 @@ function bindEvents() {
 async function init() {
   bindEvents();
 
-  try {
-    const auth = await api("/api/auth/me");
-    if (!auth.authenticated) {
+  state.user = await initAuth({
+    onFail: function(_err) {
+      alert("请先登录");
       window.location.href = "/index.html";
-      return;
     }
+  });
+  if (!state.user) return;
 
-    state.user = auth.user;
-    renderUserArea();
-    await Promise.all([loadCategories(), loadPoints()]);
-    renderCategories();
-    renderList();
-  } catch (error) {
-    alert(`语法页初始化失败：${error.message}`);
-    window.location.href = "/index.html";
-  }
+  renderUserArea(state.user, els);
+  await Promise.all([loadCategories(), loadPoints()]);
+  renderCategories();
+  renderList();
 }
 
 init();

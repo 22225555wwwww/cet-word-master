@@ -32,43 +32,6 @@ const els = {
   searchClearBtn: document.getElementById("search-clear")
 };
 
-async function api(url, options = {}) {
-  const config = {
-    method: options.method || "GET",
-    headers: {},
-    credentials: "same-origin"
-  };
-
-  if (options.body !== undefined) {
-    config.headers["Content-Type"] = "application/json";
-    config.body = JSON.stringify(options.body);
-  }
-
-  const res = await fetch(url, config);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || `请求失败(${res.status})`);
-  }
-
-  return data;
-}
-
-function renderUserArea() {
-  if (!state.user) {
-    els.userInfo.textContent = "未登录";
-    els.adminLink.classList.add("hidden");
-    return;
-  }
-
-  const roleText = state.user.role === "admin" ? "管理员" : "普通用户";
-  els.userInfo.textContent = `${state.user.username}（${roleText}）`;
-
-  if (state.user.role === "admin") {
-    els.adminLink.classList.remove("hidden");
-  } else {
-    els.adminLink.classList.add("hidden");
-  }
-}
 
 function renderLevelButtons() {
   const is4 = state.level === "CET4";
@@ -94,7 +57,7 @@ function renderPager() {
 function renderStats() {
   if (state.isSearching && state.searchQ) {
     const levelText = state.level === "CET4" ? "四级" : "六级";
-    els.vocabStats.textContent = `搜索"${state.searchQ}" — ${levelText}词汇找到 ${state.total} 个结果`;
+    els.vocabStats.textContent = `搜索"${escapeHtml(state.searchQ)}" — ${levelText}词汇找到 ${state.total} 个结果`;
     return;
   }
 
@@ -105,7 +68,7 @@ function renderStats() {
 function renderTable() {
   if (!state.words.length) {
     const msg = state.isSearching && state.searchQ
-      ? `未找到匹配"${state.searchQ}"的单词`
+      ? `未找到匹配"${escapeHtml(state.searchQ)}"的单词`
       : "暂无词汇数据";
     els.vocabBody.innerHTML = `<tr><td colspan="6">${msg}</td></tr>`;
     return;
@@ -117,9 +80,9 @@ function renderTable() {
       return `
       <tr>
         <td>${word.level === "CET4" ? "四级" : "六级"}</td>
-        <td>${word.word}</td>
+        <td>${escapeHtml(word.word)}</td>
         <td>${word.phonetic || "-"}</td>
-        <td>${word.meaning}</td>
+        <td>${escapeHtml(word.meaning)}</td>
         <td>${record?.count || 0}</td>
         <td>${record?.dictationSuccessCount || 0}</td>
       </tr>
@@ -139,7 +102,7 @@ function renderSearchState() {
 }
 
 function renderAll() {
-  renderUserArea();
+  renderUserArea(state.user, els);
   renderLevelButtons();
   renderStats();
   renderTable();
@@ -277,17 +240,8 @@ async function refreshCounts() {
   }
 }
 
-async function logout() {
-  try {
-    await api("/api/auth/logout", { method: "POST" });
-  } catch (_error) {
-  }
-
-  window.location.href = "/index.html";
-}
-
 function bindEvents() {
-  els.logoutBtn.addEventListener("click", logout);
+  els.logoutBtn.addEventListener("click", function() { logout(); });
 
   els.levelCET4Btn.addEventListener("click", () => {
     switchLevel("CET4").catch((error) => alert(error.message));
@@ -331,20 +285,16 @@ function bindEvents() {
 async function init() {
   bindEvents();
 
-  try {
-    const auth = await api("/api/auth/me");
-    if (!auth.authenticated) {
+  state.user = await initAuth({
+    onFail: function(_err) {
+      alert("请先登录");
       window.location.href = "/index.html";
-      return;
     }
+  });
+  if (!state.user) return;
 
-    state.user = auth.user;
-    await Promise.all([loadRecords(), loadWordsPaged()]);
-    renderAll();
-  } catch (error) {
-    alert(`词汇页初始化失败：${error.message}`);
-    window.location.href = "/index.html";
-  }
+  await Promise.all([loadRecords(), loadWordsPaged()]);
+  renderAll();
 }
 
 init();

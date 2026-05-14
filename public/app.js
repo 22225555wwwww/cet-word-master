@@ -16,6 +16,7 @@ function moveSlider(segmentId, activeBtn) {
 const state = {
   user: null,
   level: "CET4",
+  currentTab: "daily",
   index: 0,
   orderMode: "sequential",
   words: {
@@ -63,6 +64,12 @@ const els = {
   registerForm: document.getElementById("register-form"),
   btnCET4: document.getElementById("btn-cet4"),
   btnCET6: document.getElementById("btn-cet6"),
+  navTabDaily: document.getElementById("nav-tab-daily"),
+  navTabStudy: document.getElementById("nav-tab-study"),
+  navTabRecords: document.getElementById("nav-tab-records"),
+  tabDaily: document.getElementById("tab-daily"),
+  tabStudy: document.getElementById("tab-study"),
+  tabRecords: document.getElementById("tab-records"),
   orderSequentialBtn: document.getElementById("order-sequential"),
   orderRandomBtn: document.getElementById("order-random"),
   wordLevel: document.getElementById("word-level"),
@@ -119,49 +126,6 @@ const els = {
   dailySummaryContinue: document.getElementById("daily-summary-continue")
 };
 
-function formatDateTime(dateLike) {
-  if (!dateLike) return "-";
-
-  const text = String(dateLike);
-  const normalized = text.includes("T") ? text : `${text.replace(" ", "T")}Z`;
-  const d = new Date(normalized);
-  if (Number.isNaN(d.getTime())) return text;
-
-  const yy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mi = String(d.getMinutes()).padStart(2, "0");
-  return `${yy}-${mm}-${dd} ${hh}:${mi}`;
-}
-
-function toTimestamp(dateLike) {
-  if (!dateLike) return 0;
-  const text = String(dateLike);
-  const normalized = text.includes("T") ? text : `${text.replace(" ", "T")}Z`;
-  const value = Date.parse(normalized);
-  return Number.isNaN(value) ? 0 : value;
-}
-
-async function api(url, options = {}) {
-  const config = {
-    method: options.method || "GET",
-    headers: {},
-    credentials: "same-origin"
-  };
-
-  if (options.body !== undefined) {
-    config.headers["Content-Type"] = "application/json";
-    config.body = JSON.stringify(options.body);
-  }
-
-  const res = await fetch(url, config);
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data.message || `请求失败(${res.status})`);
-  }
-  return data;
-}
 
 function setAuthMessage(text, isError = false) {
   els.authMsg.textContent = text || "";
@@ -311,7 +275,7 @@ function renderWordList() {
   els.wordList.innerHTML = words
     .map((word) => {
       const count = state.recordMap.get(word.id)?.count || 0;
-      return `<li><strong>${word.word}</strong> ${word.meaning}<br/>已记 ${count} 次</li>`;
+      return `<li><strong>${escapeHtml(word.word)}</strong> ${escapeHtml(word.meaning)}<br/>已记 ${count} 次</li>`;
     })
     .join("");
 }
@@ -331,10 +295,10 @@ function renderRecords() {
     .map(
       (row) => `
       <tr>
-        <td>${row.level === "CET4" ? "四级" : "六级"}</td>
-        <td>${row.word}</td>
+        <td>${escapeHtml(row.level === "CET4" ? "四级" : "六级")}</td>
+        <td>${escapeHtml(row.word)}</td>
         <td>${row.phonetic || "-"}</td>
-        <td>${row.meaning}</td>
+        <td>${escapeHtml(row.meaning)}</td>
         <td>${row.count}</td>
         <td>${formatDateTime(row.lastReviewedAt)}</td>
       </tr>
@@ -367,10 +331,10 @@ function renderDictationRecords() {
     .map(
       (row) => `
       <tr>
-        <td>${row.level === "CET4" ? "四级" : "六级"}</td>
-        <td>${row.word}</td>
+        <td>${escapeHtml(row.level === "CET4" ? "四级" : "六级")}</td>
+        <td>${escapeHtml(row.word)}</td>
         <td>${row.phonetic || "-"}</td>
-        <td>${row.meaning}</td>
+        <td>${escapeHtml(row.meaning)}</td>
         <td>${row.dictationSuccessCount || 0}</td>
         <td>${formatDateTime(row.lastDictationSuccessAt)}</td>
       </tr>
@@ -379,7 +343,7 @@ function renderDictationRecords() {
     .join("");
 }
 
-function renderUserArea() {
+function renderPageUserArea() {
   if (!state.user) {
     els.userInfo.textContent = "未登录";
     els.vocabLink.classList.add("hidden");
@@ -390,18 +354,11 @@ function renderUserArea() {
     return;
   }
 
-  const roleText = state.user.role === "admin" ? "管理员" : "普通用户";
-  els.userInfo.textContent = `${state.user.username}（${roleText}）`;
+  renderUserArea(state.user, els);
   els.vocabLink.classList.remove("hidden");
   els.grammarLink.classList.remove("hidden");
   els.personalLink.classList.remove("hidden");
   els.logoutBtn.classList.remove("hidden");
-
-  if (state.user.role === "admin") {
-    els.adminLink.classList.remove("hidden");
-  } else {
-    els.adminLink.classList.add("hidden");
-  }
 }
 
 function renderQuizModeButtons() {
@@ -528,7 +485,7 @@ function renderApp() {
   renderQuizModeButtons();
   renderQuizStats();
   renderQuizCard();
-  renderUserArea();
+  renderPageUserArea();
 }
 
 async function loadWords(level) {
@@ -591,6 +548,26 @@ async function switchLevel(level) {
       }, 300);
     });
   }
+}
+
+function switchTab(tab) {
+  state.currentTab = tab;
+  var isDaily = tab === "daily";
+  var isStudy = tab === "study";
+  var isRecords = tab === "records";
+
+  els.navTabDaily.classList.toggle("active", isDaily);
+  els.navTabStudy.classList.toggle("active", isStudy);
+  els.navTabRecords.classList.toggle("active", isRecords);
+  els.navTabDaily.setAttribute("aria-selected", String(isDaily));
+  els.navTabStudy.setAttribute("aria-selected", String(isStudy));
+  els.navTabRecords.setAttribute("aria-selected", String(isRecords));
+
+  els.tabDaily.classList.toggle("hidden", !isDaily);
+  els.tabStudy.classList.toggle("hidden", !isStudy);
+  els.tabRecords.classList.toggle("hidden", !isRecords);
+
+  moveSlider("nav-segment", isDaily ? "#nav-tab-daily" : isStudy ? "#nav-tab-study" : "#nav-tab-records");
 }
 
 function switchOrderMode(mode) {
@@ -768,31 +745,31 @@ function splitMeaningTokens(meaning) {
     .filter(Boolean);
 }
 
-function checkQuizAnswer(word, answer) {
+// Unified dictation answer check. mode = "cn-en" | "en-cn"
+function checkDictationAnswer(word, answer, mode) {
   if (!word) {
     return { correct: false, reason: "你还没去背单词" };
   }
 
-  const trimmed = String(answer || "").trim();
+  var trimmed = String(answer || "").trim();
   if (!trimmed) {
     return { correct: false, reason: "请输入答案" };
   }
 
-  if (state.quiz.mode === "cn-en") {
-    const ok = normalizeEnglish(trimmed) === normalizeEnglish(word.word);
+  if (mode === "cn-en") {
+    var ok = normalizeEnglish(trimmed) === normalizeEnglish(word.word);
     return { correct: ok, expected: word.word };
   }
 
-  const inputNorm = normalizeChinese(trimmed);
-  const fullMeaningNorm = normalizeChinese(word.meaning);
-  const tokenNorms = splitMeaningTokens(word.meaning).map((item) => normalizeChinese(item));
+  var inputNorm = normalizeChinese(trimmed);
+  var fullMeaningNorm = normalizeChinese(word.meaning);
+  var tokenNorms = splitMeaningTokens(word.meaning).map(function(item) { return normalizeChinese(item); });
 
-  const tokenMatch = tokenNorms.some(
-    (token) => inputNorm === token || token.includes(inputNorm) || inputNorm.includes(token)
+  var tokenMatch = tokenNorms.some(
+    function(token) { return inputNorm === token || token.includes(inputNorm) || inputNorm.includes(token); }
   );
 
-  const ok =
-    inputNorm === fullMeaningNorm ||
+  ok = inputNorm === fullMeaningNorm ||
     fullMeaningNorm.includes(inputNorm) ||
     inputNorm.includes(fullMeaningNorm) ||
     tokenMatch;
@@ -823,7 +800,7 @@ function nextQuizQuestion() {
 async function submitQuizAnswer() {
   const current = ensureQuizWord();
   const answer = els.quizInput.value;
-  const result = checkQuizAnswer(current, answer);
+  const result = checkDictationAnswer(current, answer, state.quiz.mode);
 
   if (result.reason) {
     setQuizFeedback(result.reason, "error");
@@ -916,7 +893,7 @@ async function logout() {
   state.quiz.currentWordId = null;
   state.daily.loaded = false;
   state.daily.words = [];
-  renderUserArea();
+  renderPageUserArea();
   enterLoggedOutState();
 }
 
@@ -968,10 +945,10 @@ function renderDailyWordGrid() {
       return `
         <div class="daily-word-chip ${statusClass}" data-word-id="${w.id}">
           <div class="daily-word-main">
-            <span class="daily-word-en">${w.word}</span>
-            ${w.phonetic ? `<span class="daily-word-phonetic">${w.phonetic}</span>` : ""}
+            <span class="daily-word-en">${escapeHtml(w.word)}</span>
+            ${w.phonetic ? `<span class="daily-word-phonetic">${escapeHtml(w.phonetic)}</span>` : ""}
           </div>
-          <div class="daily-word-meaning">${w.meaning}</div>
+          <div class="daily-word-meaning">${escapeHtml(w.meaning)}</div>
           ${statusText ? `<span class="daily-word-status">${statusText}</span>` : ""}
           ${!done ? `<button class="primary small-btn daily-remember-btn" data-word-id="${w.id}">记住</button>` : ""}
         </div>
@@ -1138,33 +1115,6 @@ async function handleDailyRemember(wordId) {
   }
 }
 
-function checkDailyDictationAnswer(word, answer) {
-  const trimmed = String(answer || "").trim();
-  if (!trimmed) {
-    return { correct: false, reason: "请输入答案" };
-  }
-
-  if (state.daily.dictationMode === "cn-en") {
-    const ok = normalizeEnglish(trimmed) === normalizeEnglish(word.word);
-    return { correct: ok, expected: word.word };
-  }
-
-  const inputNorm = normalizeChinese(trimmed);
-  const fullMeaningNorm = normalizeChinese(word.meaning);
-  const tokenNorms = splitMeaningTokens(word.meaning).map((item) => normalizeChinese(item));
-
-  const tokenMatch = tokenNorms.some(
-    (token) => inputNorm === token || token.includes(inputNorm) || inputNorm.includes(token)
-  );
-
-  const ok =
-    inputNorm === fullMeaningNorm ||
-    fullMeaningNorm.includes(inputNorm) ||
-    inputNorm.includes(fullMeaningNorm) ||
-    tokenMatch;
-
-  return { correct: ok, expected: word.meaning };
-}
 
 async function submitDailyDictationAnswer() {
   const { dictationQueue, dictationIndex, dictationMode } = state.daily;
@@ -1172,7 +1122,7 @@ async function submitDailyDictationAnswer() {
 
   const current = dictationQueue[dictationIndex];
   const answer = els.dailyDictInput.value;
-  const result = checkDailyDictationAnswer(current, answer);
+  const result = checkDictationAnswer(current, answer, state.daily.dictationMode);
 
   if (result.reason) {
     state.daily.feedbackText = result.reason;
@@ -1312,6 +1262,10 @@ function bindEvents() {
   els.registerForm.addEventListener("submit", handleRegisterSubmit);
   els.logoutBtn.addEventListener("click", logout);
 
+  els.navTabDaily.addEventListener("click", () => switchTab("daily"));
+  els.navTabStudy.addEventListener("click", () => switchTab("study"));
+  els.navTabRecords.addEventListener("click", () => switchTab("records"));
+
   els.btnCET4.addEventListener("click", () => {
     switchLevel("CET4").catch((error) => alert(error.message));
   });
@@ -1368,7 +1322,7 @@ function bindEvents() {
   });
 
   els.dailySummaryContinue.addEventListener("click", () => {
-    els.dailyPanel.scrollIntoView({ behavior: "smooth" });
+    switchTab("study");
   });
 
   // Daily dictation slider
@@ -1384,6 +1338,7 @@ async function init() {
   // Initialize sliders after DOM is ready
   requestAnimationFrame(() => {
     moveSlider("auth-segment", "#tab-login");
+    moveSlider("nav-segment", "#nav-tab-daily");
   });
 
   // Recalculate sliders on resize
@@ -1393,25 +1348,22 @@ async function init() {
     moveSlider("order-segment", state.orderMode === "sequential" ? "#order-sequential" : "#order-random");
     moveSlider("quiz-segment", state.quiz.mode === "cn-en" ? "#quiz-mode-cn-en" : "#quiz-mode-en-cn");
     moveSlider("daily-dictation-segment", state.daily.dictationMode === "cn-en" ? "#daily-dict-cn-en" : "#daily-dict-en-cn");
+    var tab = state.currentTab;
+    moveSlider("nav-segment", tab === "daily" ? "#nav-tab-daily" : tab === "study" ? "#nav-tab-study" : "#nav-tab-records");
   });
 
-  try {
-    const data = await api("/api/auth/me");
-    if (!data.authenticated) {
+  state.user = await initAuth({
+    onFail: function(_reason) {
       state.user = null;
-      renderUserArea();
+      renderPageUserArea();
       enterLoggedOutState();
-      return;
     }
+  });
+  if (!state.user) return;
 
-    state.user = data.user;
-    enterLoggedInState();
-    await bootstrapLoggedInData();
-    renderApp();
-  } catch (error) {
-    setAuthMessage(`初始化失败：${error.message}`, true);
-    enterLoggedOutState();
-  }
+  enterLoggedInState();
+  await bootstrapLoggedInData();
+  renderApp();
 }
 
 init();

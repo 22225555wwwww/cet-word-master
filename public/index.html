@@ -83,7 +83,17 @@
           </div>
         </section>
 
+        <section class="panel" aria-label="功能切换">
+          <div class="segment" role="tablist" aria-label="功能板块切换" id="nav-segment">
+            <div class="slider" id="nav-slider"></div>
+            <button id="nav-tab-daily" class="segment-btn active" role="tab" aria-selected="true">每日任务</button>
+            <button id="nav-tab-study" class="segment-btn" role="tab" aria-selected="false">自由背词</button>
+            <button id="nav-tab-records" class="segment-btn" role="tab" aria-selected="false">学习记录</button>
+          </div>
+        </section>
+
         <!-- 每日背词 -->
+        <div id="tab-daily" class="tab-content">
         <section class="panel" aria-label="每日背词" id="daily-panel">
           <div class="section-title-row">
             <h2>每日背词</h2>
@@ -138,7 +148,9 @@
             </div>
           </div>
         </section>
+        </div>
 
+        <div id="tab-study" class="tab-content hidden">
         <section class="panel" aria-label="背词区域">
           <div class="section-title-row">
             <h2>高频单词背诵</h2>
@@ -210,7 +222,9 @@
             <p id="quiz-feedback" class="hint">答对后会自动计入记住次数和成功默写次数。</p>
           </article>
         </section>
+        </div>
 
+        <div id="tab-records" class="tab-content hidden">
         <section class="panel" aria-label="我的背诵记录">
           <div class="section-title-row">
             <h2>我的单词背诵</h2>
@@ -255,9 +269,11 @@
             </table>
           </div>
         </section>
+        </div>
       </section>
     </main>
 
+    <script src="shared.js"></script>
     <script src="effects.js"></script>
     <script src="app.js"></script>
   </body>
