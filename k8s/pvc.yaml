@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: cet-word-data
+  namespace: cet-word
+  labels:
+    app.kubernetes.io/name: cet-word-master
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  # 按集群实际 storage class 修改；minikube/kind 一般可省略
+  # storageClassName: standard

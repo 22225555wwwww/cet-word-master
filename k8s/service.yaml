@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cet-word-master
+  namespace: cet-word
+  labels:
+    app.kubernetes.io/name: cet-word-master
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: cet-word-master
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

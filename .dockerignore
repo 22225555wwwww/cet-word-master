@@ -1,0 +1,12 @@
+node_modules
+data
+*.db
+.env
+.git
+.gitignore
+Dockerfile
+.dockerignore
+docker-compose.yml
+k8s
+*.md
+!README.md

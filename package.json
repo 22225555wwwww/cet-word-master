@@ -1,5 +1,5 @@
 {
-  "name": "new_project",
+  "name": "cet-word-master",
   "version": "1.0.0",
   "description": "CET4/6 vocabulary study site with account login and admin backend",
   "main": "server.js",

@@ -19,7 +19,7 @@
 | 数据库 | SQLite（better-sqlite3） |
 | 认证 | express-session + bcryptjs |
 | 前端 | 原生 HTML/CSS/JS |
-| 部署 | Railway + Volume 持久化 |
+| 部署 | Docker + Kubernetes（另有 Railway 方案） |
 
 ## 🚀 快速开始
 
@@ -118,7 +118,31 @@ cet-word-master/
 
 ## 🌐 部署
 
-详见 [DEPLOY.md](DEPLOY.md)，推荐使用 Railway 部署。
+### Docker
+
+```bash
+docker build -t cet-word-master:1.0.0 .
+docker run -d -p 3000:3000 \
+  -e SESSION_SECRET=your-long-random-secret \
+  -e ADMIN_PASSWORD=your-strong-password \
+  -v cet-word-data:/app/data \
+  cet-word-master:1.0.0
+```
+
+或使用 docker compose：
+
+```bash
+cp .env.example .env   # 填写 SESSION_SECRET / ADMIN_PASSWORD
+docker compose up -d
+```
+
+### Kubernetes
+
+完整清单见 [k8s/](k8s/)，支持 `kubectl apply -k k8s/` 一键部署。架构：Ingress → Service → 单副本 Pod + PVC 持久化 SQLite，含健康探针、资源限制、非 root 安全上下文。详见 [k8s/README.md](k8s/README.md)。
+
+### Railway
+
+传统 PaaS 方案详见 [DEPLOY.md](DEPLOY.md)。
 
 ### 环境变量
 

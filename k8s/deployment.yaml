@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cet-word-master
+  namespace: cet-word
+  labels:
+    app.kubernetes.io/name: cet-word-master
+spec:
+  # SQLite 单文件数据库，不支持多副本并发写，副本数必须为 1
+  replicas: 1
+  strategy:
+    # 滚动更新会导致新旧 Pod 同时写同一个 SQLite 文件，用 Recreate 避免
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cet-word-master
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cet-word-master
+    spec:
+      securityContext:
+        fsGroup: 1000 # node 用户 gid，保证 PVC 目录可写
+      containers:
+        - name: app
+          image: registry.example.com/cet-word-master:1.0.0 # 改成你的镜像仓库地址
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: TRUST_PROXY
+              value: "1"
+            - name: DATA_DIR
+              value: /app/data
+            - name: SESSION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: cet-word-secret
+                  key: SESSION_SECRET
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cet-word-secret
+                  key: ADMIN_PASSWORD
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: cet-word-data
+        - name: tmp
+          emptyDir: {}

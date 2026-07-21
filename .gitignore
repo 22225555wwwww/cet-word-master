@@ -4,3 +4,4 @@ node_modules/
 npm-debug.log*
 data/app.db
 backup/
+k8s/secret.yaml
