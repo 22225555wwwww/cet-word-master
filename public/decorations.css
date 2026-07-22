@@ -1,0 +1,270 @@
+/* ============================================================
+   CET Word Master — 手绘装饰层 decorations.css
+   纯 CSS + 内联 SVG 的铅笔素描 doodle：
+   · 两侧留白：纸飞机（3 帧 boiling + 漂移）、铅笔（2 帧）、橡皮（2 帧）
+   · 童年/学生时代：玩具汽车（2 帧 + 滑行）、陀螺（2 帧）、纸船（2 帧 + 漂浮）、玻璃弹珠（2 帧）
+   · 小装饰：标题波浪下划线、卡片右上角胶带、朱砂星星/对勾
+   色板严格取自设计体系：墨 #191914 / 朱砂 #db3356 / 暖白 #faf8f1
+
+   构图：不规则散落 —— 各物件垂直间距无公差、左右两侧高度互相错开
+   （非镜像），水平边距 2vw~8vw 不一，旋转角 -16°~+14° 各不相同，
+   缩放 0.82~1.12 大小不一；纸飞机轻微出血出画，弹珠贴近内容区边缘。
+
+   transform 协调方案（全文件统一）：
+   静态姿态一律用独立 CSS 属性 rotate / scale（不用 transform），
+   drift 漂移动画继续作用在 transform 上 —— 独立属性与 transform
+   在渲染时叠加，动画不会再覆盖静态 rotate/scale。
+   ============================================================ */
+
+/* ---------- 两侧固定装饰层 ---------- */
+.doodle-side {
+  position: fixed;
+  inset: 0;
+  z-index: -1; /* 压在所有内容之下、稿纸背景之上 */
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.doodle {
+  position: absolute;
+  color: #191914; /* 主墨色笔触 */
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+.doodle svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 逐帧动画的每一帧默认隐藏，由 keyframes 轮流点亮 */
+.doodle .frame {
+  opacity: 0;
+}
+
+/* ============================================================
+   基础构图（首页 index.html 全量 7 件；其余页面按类取用）
+   左侧 4 件：铅笔 8vh / 弹珠 31vh / 陀螺 55vh / 橡皮 bottom 7vh
+   右侧 3 件：纸飞机 17vh / 纸船 44vh / 汽车 bottom 15vh
+   两侧交错过渡：8 → 17 → 31 → 44 → 55 → 73 → 83，间距无规律
+   ============================================================ */
+
+/* ----- 纸飞机：3 帧 boiling + 缓慢漂移；右侧出血（半身出画） ----- */
+.doodle-plane {
+  right: 1.5vw;
+  top: 17vh;
+  width: 150px;
+  rotate: 7deg;
+  scale: 1.12;
+  animation: doodle-drift 16s ease-in-out infinite;
+}
+
+.doodle-plane .frame {
+  animation: doodle-boil-3 0.9s linear infinite;
+}
+.doodle-plane .frame:nth-of-type(2) {
+  animation-delay: -0.6s;
+}
+.doodle-plane .frame:nth-of-type(3) {
+  animation-delay: -0.3s;
+}
+
+/* ----- 铅笔：2 帧 boiling；贴左缘高位 ----- */
+.doodle-pencil {
+  left: 2.5vw;
+  top: 8vh;
+  width: 54px;
+  rotate: -13deg;
+  scale: 0.94;
+}
+
+/* ----- 橡皮：2 帧 boiling；左下，边距放宽 ----- */
+.doodle-eraser {
+  left: 7vw;
+  bottom: 7vh;
+  width: 118px;
+  rotate: -6deg;
+  scale: 1.05;
+}
+
+.doodle-pencil .frame,
+.doodle-eraser .frame {
+  animation: doodle-boil-2 0.7s linear infinite;
+}
+.doodle-pencil .frame:nth-of-type(2),
+.doodle-eraser .frame:nth-of-type(2) {
+  animation-delay: -0.35s;
+}
+
+/* ----- 玩具汽车：2 帧 boiling + 缓慢滑行；右下贴近边缘 ----- */
+.doodle-car {
+  right: 2vw;
+  bottom: 15vh;
+  width: 148px;
+  rotate: 11deg;
+  scale: 0.98;
+  animation: doodle-drift-car 14s ease-in-out infinite;
+}
+
+.doodle-car .frame {
+  animation: doodle-boil-2 0.8s linear infinite;
+}
+.doodle-car .frame:nth-of-type(2) {
+  animation-delay: -0.4s;
+}
+
+/* ----- 陀螺：2 帧 boiling（帧间倾斜角/旋线略变）；左侧中低位 ----- */
+.doodle-top {
+  left: 3vw;
+  top: 55vh;
+  width: 88px;
+  rotate: 5deg;
+  scale: 0.88;
+}
+
+.doodle-top .frame {
+  animation: doodle-boil-2 0.7s linear infinite;
+}
+.doodle-top .frame:nth-of-type(2) {
+  animation-delay: -0.35s;
+}
+
+/* ----- 纸船：2 帧 boiling + 水面漂浮；右侧深悬（8vw 大边距） ----- */
+.doodle-boat {
+  right: 8vw;
+  top: 44vh;
+  width: 126px;
+  rotate: -4deg;
+  scale: 0.92;
+  animation: doodle-drift-boat 18s ease-in-out infinite;
+}
+
+.doodle-boat .frame {
+  animation: doodle-boil-2 0.9s linear infinite;
+}
+.doodle-boat .frame:nth-of-type(2) {
+  animation-delay: -0.45s;
+}
+
+/* ----- 玻璃弹珠：2 帧 boiling（高光帧间微移）；贴近内容区左缘 -----
+   内容容器 960px 居中，左侧边 = 50vw - 480px；
+   弹珠左缘再让出 60px，任何 ≥1100px 视口下都恰好倚在内容区旁。 */
+.doodle-marble {
+  left: calc(50vw - 540px);
+  top: 31vh;
+  width: 50px;
+  rotate: 9deg;
+  scale: 1.08;
+}
+
+.doodle-marble .frame {
+  animation: doodle-boil-2 0.65s linear infinite;
+}
+.doodle-marble .frame:nth-of-type(2) {
+  animation-delay: -0.325s;
+}
+
+/* ----- 汽车滑行 / 纸船漂浮：14-18s 小振幅（只动 transform，与静态
+   rotate/scale 独立属性叠加，互不覆盖） ----- */
+@keyframes doodle-drift-car {
+  0%, 100% { transform: translate(0, 0) rotate(2deg); }
+  50% { transform: translate(-14px, -6px) rotate(-1deg); }
+}
+
+@keyframes doodle-drift-boat {
+  0%, 100% { transform: translate(0, 0) rotate(-2deg); }
+  50% { transform: translate(-10px, 8px) rotate(2deg); }
+}
+
+/* ----- 位置修饰类：非首页重排构图（定义在物件类之后以覆盖默认位）。
+   除位移外还各自带独立 rotate/scale —— 同一个物件在不同页面
+   呈现不同倾角与大小，5 页构图各自不同。 ----- */
+.doodle-pos-lt { left: 2vw; top: 11vh; right: auto; bottom: auto; rotate: 8deg; scale: 0.9; }
+.doodle-pos-lm { left: 7vw; top: 38vh; right: auto; bottom: auto; rotate: -11deg; scale: 1.06; }
+.doodle-pos-lb { left: 5vw; bottom: 9vh; right: auto; top: auto; rotate: 3deg; scale: 0.84; }
+.doodle-pos-rt { right: 2.5vw; top: 13vh; left: auto; bottom: auto; rotate: -8deg; scale: 1.04; }
+.doodle-pos-rm { right: 8vw; top: 41vh; left: auto; bottom: auto; rotate: 12deg; scale: 0.87; }
+.doodle-pos-rb { right: 3vw; bottom: 15vh; left: auto; top: auto; rotate: -5deg; scale: 1.1; }
+
+/* ----- boiling 逐帧关键帧：手绘抖动的 "wiggle" 感 ----- */
+@keyframes doodle-boil-2 {
+  0%, 49.9% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes doodle-boil-3 {
+  0%, 33.2% { opacity: 1; }
+  33.4%, 100% { opacity: 0; }
+}
+
+/* ----- 纸飞机缓慢漂移（16s，幅度小；只动 transform） ----- */
+@keyframes doodle-drift {
+  0%, 100% { transform: translate(0, 0) rotate(-3deg); }
+  50% { transform: translate(16px, -20px) rotate(1deg); }
+}
+
+/* ---------- 小装饰：标题铅笔波浪下划线 ---------- */
+.doodle-underline {
+  display: block;
+  width: 230px;
+  max-width: 70%;
+  height: 14px;
+  margin-top: 4px;
+  color: #191914;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ---------- 小装饰：卡片右上角胶带纸 ----------
+   （.panel 自带左上角胶带 ::before，这条放在右上角形成呼应） */
+.doodle-tape {
+  position: absolute;
+  top: -10px;
+  right: 38px;
+  width: 76px;
+  height: 22px;
+  background: rgba(219, 51, 86, 0.2);
+  border: 1px solid rgba(219, 51, 86, 0.14);
+  border-radius: 2px;
+  rotate: 5deg; /* 静态倾角：与 doodle 一致用独立 rotate 属性 */
+  clip-path: polygon(3% 14%, 97% 0%, 100% 82%, 94% 100%, 4% 92%, 0% 30%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* ---------- 小装饰：朱砂星星 / 对勾 doodle ---------- */
+.doodle-mark {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  margin-left: 10px;
+  vertical-align: -5px;
+  color: #db3356; /* 强调朱砂 */
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* ---------- 响应式：窄视口撤掉两侧装饰 ---------- */
+@media (max-width: 1099px) {
+  .doodle-side {
+    display: none;
+  }
+}
+
+/* ---------- 减少动态：全部静止，只显示第一帧 ----------
+   （静态 rotate/scale 保留，散落的姿态在静帧下依然成立） */
+@media (prefers-reduced-motion: reduce) {
+  .doodle-plane,
+  .doodle-car,
+  .doodle-boat {
+    animation: none;
+  }
+  .doodle .frame {
+    animation: none;
+    opacity: 0;
+  }
+  .doodle .frame:first-of-type {
+    opacity: 1;
+  }
+}
