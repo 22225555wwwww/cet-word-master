@@ -7,25 +7,257 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Long+Cang&family=Gochi+Hand&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="effects.css" />
+    <link rel="stylesheet" href="decorations.css" />
   </head>
   <body>
     <div class="bg-shape shape-a"></div>
     <div class="bg-shape shape-b"></div>
 
+    <!-- 手绘 doodle 装饰层（纯装饰，纯 CSS 逐帧动画，不响应交互） -->
+    <div class="doodle-side" aria-hidden="true">
+      <div class="doodle doodle-eraser">
+        <svg viewBox="0 0 110 80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <filter id="erJit1" x="-12%" y="-15%" width="124%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.033" numOctaves="3" seed="5" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.7" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="erJit2" x="-12%" y="-15%" width="124%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.027" numOctaves="3" seed="23" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="3.1" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="erGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="2" seed="13" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="110" height="80" fill="#000" stroke="none" filter="url(#erGrain)" opacity="0.3" />
+          <!-- 第 1 帧：轮廓叠笔 + 纸套分界 + 朱砂小标签 + 右侧/底边排线 + 磨损补笔 + 橡皮屑 -->
+          <g class="frame" filter="url(#erJit1)">
+            <path stroke-width="2.2" d="M24 22 h60 q12 0 12 11 v16 q0 11 -12 11 h-60 q-11 0 -11 -11 v-16 q0 -11 11 -11 z" />
+            <path stroke-width="1.5" opacity="0.35" d="M25 23.5 h59.5 q11.5 0 11.5 10.5 v15.5 q0 10.5 -11.5 10.5 h-59.5 q-10.5 0 -10.5 -10.5 v-15.5 q0 -10.5 10.5 -10.5 z" />
+            <path stroke-width="1.5" d="M45 22.5 L45 60" />
+            <path stroke-width="1.5" d="M67 22.5 L67 60" />
+            <path stroke-width="1" stroke="rgba(25,25,20,0.35)" d="M46.8 24 L46.8 58" />
+            <g stroke="#db3356" stroke-width="1.6" opacity="0.85">
+              <path d="M51 36 q7 -4 11 1 q3 5 -3 7.5 q-7 2.5 -10 -2 q-2 -4 2 -6.5 z" />
+              <path d="M50 50 q5 2 12 0" />
+            </g>
+            <g stroke="rgba(25,25,20,0.45)" stroke-width="1.2">
+              <path d="M73 28 l6 8" />
+              <path d="M80 26.5 l6 8" />
+              <path d="M87 27 l5.5 7.5" />
+              <path d="M74 40 l5 6.5" />
+              <path d="M82 40 l4.5 6" />
+            </g>
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.15">
+              <path d="M18 55.5 l4.5 -5" />
+              <path d="M27 57.5 l4.5 -5" />
+              <path d="M36 58 l4.5 -5" />
+              <path d="M50 58.5 l4.5 -5" />
+              <path d="M59 58.5 l4.5 -5" />
+              <path d="M76 57.5 l4.5 -5" />
+              <path d="M85 55.5 l4.5 -5" />
+            </g>
+            <path stroke-width="1.2" stroke="rgba(25,25,20,0.5)" d="M15 32 q-1.5 8 0.5 17" />
+            <g stroke="rgba(25,25,20,0.5)" stroke-width="1.3">
+              <path d="M99 63 l2.5 1" />
+              <path d="M104 58.5 l2 0.8" />
+              <path d="M101 67.5 l1.8 1.2" />
+            </g>
+          </g>
+          <!-- 第 2 帧：轮廓轻移，排线角度略变，朱砂标签重画一笔 -->
+          <g class="frame" filter="url(#erJit2)">
+            <path stroke-width="2" d="M23 23 h61 q11.5 0 11.5 10.5 v16 q0 11.5 -11.5 11.5 h-61 q-11 0 -11 -11.5 v-16 q0 -10.5 11 -10.5 z" />
+            <path stroke-width="1.5" opacity="0.32" d="M24.5 24.6 h59.5 q11 0 11 10 v15.5 q0 11 -11 11 h-59.5 q-10.5 0 -10.5 -11 v-15.5 q0 -10 10.5 -10 z" />
+            <path stroke-width="1.6" d="M44.5 23.5 L44.5 60.5" />
+            <path stroke-width="1.4" d="M67.5 23.5 L67.5 60.5" />
+            <path stroke-width="1" stroke="rgba(25,25,20,0.33)" d="M66 25 L66 58.5" />
+            <g stroke="#db3356" stroke-width="1.5" opacity="0.85">
+              <path d="M51.5 36.5 q6.5 -4.5 10.8 0.8 q3.2 5 -2.8 7.6 q-7 2.6 -10.2 -1.8 q-2.2 -4.2 2.2 -6.6 z" />
+              <path d="M50 50.5 q5.5 1.8 12 -0.2" />
+            </g>
+            <g stroke="rgba(25,25,20,0.43)" stroke-width="1.2">
+              <path d="M74 28.5 l5.8 8" />
+              <path d="M81 27 l5.8 8" />
+              <path d="M88 28 l5 7.2" />
+              <path d="M75 40.5 l4.8 6.4" />
+              <path d="M83 40 l4.4 5.8" />
+            </g>
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.15">
+              <path d="M19 56 l4.4 -5" />
+              <path d="M28 58 l4.4 -5" />
+              <path d="M37 58.5 l4.4 -5" />
+              <path d="M51 59 l4.4 -5" />
+              <path d="M60 59 l4.4 -5" />
+              <path d="M77 58 l4.4 -5" />
+              <path d="M86 56 l4.4 -5" />
+            </g>
+            <path stroke-width="1.2" stroke="rgba(25,25,20,0.48)" d="M14 33 q-1.2 8 0.8 16.5" />
+            <g stroke="rgba(25,25,20,0.48)" stroke-width="1.3">
+              <path d="M100 62.5 l2.4 1.2" />
+              <path d="M105 59 l1.8 0.7" />
+              <path d="M102 67 l2 1" />
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="doodle doodle-marble doodle-pos-rt">
+        <svg viewBox="0 0 60 70" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <filter id="mbJit1" x="-18%" y="-15%" width="136%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="103" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="mbJit2" x="-18%" y="-15%" width="136%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.033" numOctaves="3" seed="111" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="mbGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="2" seed="29" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="60" height="70" fill="#000" stroke="none" filter="url(#mbGrain)" opacity="0.3" />
+          <!-- 第 1 帧：外轮廓双圈 + 猫眼旋纹 + 左上高光 + 右下排线反光 + 地面投影排线 -->
+          <g class="frame" filter="url(#mbJit1)">
+            <path stroke-width="2.2" d="M11 29 a19 19 0 1 0 38 0 a19 19 0 1 0 -38 0 Z" />
+            <path stroke-width="1.3" opacity="0.35" d="M12.2 29.6 a17.8 17.8 0 1 0 35.6 0 a17.8 17.8 0 1 0 -35.6 0 Z" />
+            <path stroke-width="1.5" stroke="#3a3a35" d="M17 25 Q26 17 37 21 Q45 25 41 32 Q36 38 28 35 Q22 32 25 27 Q27 24 31 25" />
+            <path stroke-width="1" opacity="0.45" d="M20 33 Q28 40 37 36" />
+            <path stroke-width="1.6" d="M18.5 19 q4 -4.5 9.5 -4.5" />
+            <path stroke-width="1.2" opacity="0.5" d="M21 15.5 q2 -1.5 4.5 -1.5" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.05">
+              <path d="M36 41 l5 -6" />
+              <path d="M41 38 l5 -6" />
+              <path d="M31 43.5 l5 -6" />
+            </g>
+            <path stroke-width="1.3" stroke="rgba(25,25,20,0.45)" d="M14 56 q16 7 32 0" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.1">
+              <path d="M18 60 l6 -4" />
+              <path d="M27 61.5 l6 -4" />
+              <path d="M36 61.5 l6 -4" />
+              <path d="M45 60 l6 -4" />
+            </g>
+          </g>
+          <!-- 第 2 帧：高光上移 1.5px，旋纹重描，投影略收 -->
+          <g class="frame" filter="url(#mbJit2)">
+            <path stroke-width="2.1" d="M10.5 28.5 a18.7 18.7 0 1 0 37.4 0 a18.7 18.7 0 1 0 -37.4 0 Z" />
+            <path stroke-width="1.3" opacity="0.32" d="M11.8 30 a17.5 17.5 0 1 0 35 0 a17.5 17.5 0 1 0 -35 0 Z" />
+            <path stroke-width="1.4" stroke="#3a3a35" d="M17.5 24 Q26.5 16.5 37 20.5 Q44.5 24.5 40.5 31.5 Q35.5 37.5 28 34 Q22.5 31 25.5 26.5 Q27.5 23.5 31.5 24.5" />
+            <path stroke-width="1" opacity="0.42" d="M20.5 32.5 Q28.5 39.5 37 35.5" />
+            <path stroke-width="1.5" d="M20 17.5 q4 -4 9 -4" />
+            <path stroke-width="1.2" opacity="0.48" d="M22.8 14.5 q2 -1.4 4.2 -1.3" />
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.05">
+              <path d="M36.5 40.5 l5.2 -6" />
+              <path d="M41.5 37.5 l5.2 -6" />
+              <path d="M31.5 43 l5.2 -6" />
+            </g>
+            <path stroke-width="1.3" stroke="rgba(25,25,20,0.43)" d="M14.5 55.5 q15.5 6.5 31 0" />
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.1">
+              <path d="M19 59.5 l6 -4.2" />
+              <path d="M28 61 l6 -4.2" />
+              <path d="M37 61 l6 -4.2" />
+              <path d="M45 59.5 l5.6 -4" />
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="doodle doodle-boat doodle-pos-lm">
+        <svg viewBox="0 0 130 90" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <filter id="btJit1" x="-12%" y="-14%" width="124%" height="128%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" seed="83" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.8" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="btJit2" x="-12%" y="-14%" width="124%" height="128%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.036" numOctaves="2" seed="97" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.5" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="btGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.76" numOctaves="2" seed="21" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="130" height="90" fill="#000" stroke="none" filter="url(#btGrain)" opacity="0.3" />
+          <!-- 第 1 帧：梯形船体双笔 + 中央三角折峰 + 折痕 + 船腹排线 + 水波两道 -->
+          <g class="frame" filter="url(#btJit1)">
+            <path stroke-width="2.2" d="M14 54 L30 72 L100 72 L116 54 Z" />
+            <path stroke-width="1.4" opacity="0.35" d="M15.5 55.5 L31 73.5 L99.5 73.5 L114.5 55.5 Z" />
+            <path stroke-width="2" d="M48 54 L65 24 L82 54 Z" />
+            <path stroke-width="1.3" opacity="0.35" d="M49.5 55 L65.8 26 L80.8 55 Z" />
+            <path stroke-width="1.2" stroke="#3a3a35" d="M65 24 L65 54" />
+            <path stroke-width="1" opacity="0.4" d="M66.6 27 L66.4 52" />
+            <path stroke-width="1.3" stroke="#3a3a35" opacity="0.7" d="M48 54 L30 72" />
+            <path stroke-width="1.3" stroke="#3a3a35" opacity="0.7" d="M82 54 L100 72" />
+            <g stroke="rgba(25,25,20,0.42)" stroke-width="1.15">
+              <path d="M40 68 l7 -8" />
+              <path d="M50 69 l7 -8" />
+              <path d="M60 69.5 l7 -8" />
+              <path d="M70 69.5 l7 -8" />
+              <path d="M80 69 l7 -8" />
+              <path d="M90 68 l7 -8" />
+            </g>
+            <g stroke="rgba(25,25,20,0.35)" stroke-width="1.05">
+              <path d="M20 58 l6 4" />
+              <path d="M104 60 l6 -4" />
+              <path d="M108 64 l5 -3.5" />
+            </g>
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.3">
+              <path d="M8 82 q8 -5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" />
+              <path d="M24 87 q7 -4 14 0 t14 0 t14 0 t14 0" opacity="0.7" />
+            </g>
+          </g>
+          <!-- 第 2 帧：船体下移 0.5px 并重描，折峰左倾，水波相位错开 -->
+          <g class="frame" filter="url(#btJit2)">
+            <path stroke-width="2.1" d="M13.5 55 L29.5 72.5 L99.5 72.5 L115.5 55 Z" />
+            <path stroke-width="1.5" opacity="0.32" d="M15 53.8 L30.6 71.6 L100 71.4 L114.4 53.6 Z" />
+            <path stroke-width="2.1" d="M47.5 54.5 L64.5 25 L81.5 54.5 Z" />
+            <path stroke-width="1.2" opacity="0.38" d="M49 55.5 L65.2 27 L80.2 55.5 Z" />
+            <path stroke-width="1.1" stroke="#3a3a35" d="M64.5 25 L64.8 54" />
+            <path stroke-width="1" opacity="0.42" d="M66 28 L66.2 52.5" />
+            <path stroke-width="1.3" stroke="#3a3a35" opacity="0.65" d="M47.5 54.5 L29.5 72.5" />
+            <path stroke-width="1.3" stroke="#3a3a35" opacity="0.65" d="M81.5 54.5 L99.5 72.5" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.15">
+              <path d="M39 67.5 l7.2 -8" />
+              <path d="M49 68.5 l7.2 -8" />
+              <path d="M59 69 l7.2 -8" />
+              <path d="M69 69 l7.2 -8" />
+              <path d="M79 68.5 l7.2 -8" />
+              <path d="M89 67.5 l7.2 -8" />
+            </g>
+            <g stroke="rgba(25,25,20,0.33)" stroke-width="1.05">
+              <path d="M19 57.5 l6.2 4" />
+              <path d="M103 59.5 l6.2 -4" />
+              <path d="M107 63.5 l5.2 -3.6" />
+            </g>
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.3">
+              <path d="M12 81 q8 -5.5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" />
+              <path d="M20 86.5 q7 -4.2 14 0 t14 0 t14 0 t14 0 t14 0" opacity="0.65" />
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+
     <main class="container">
-      <header class="hero">
-        <div class="top-row">
-          <div>
-            <p class="badge">Profile</p>
-            <h1>个人学习数据</h1>
-            <p>坚持打卡，追踪你的学习轨迹。</p>
+      <header class="masthead">
+        <div class="masthead-meta">
+          <span class="kicker">CET WORD MASTER</span>
+          <span class="dateline">EST. 2026 · 数据档案</span>
+        </div>
+        <div class="masthead-main">
+          <div class="masthead-title">
+            <p class="badge" data-animate style="--stagger:0">Profile</p>
+            <h1 data-animate style="--stagger:1">个人学习数据</h1>
+            <svg class="doodle-underline" viewBox="0 0 224 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 9 q11 -7 22 0 t22 0 t22 0 t22 0 t22 0 t22 0 t22 0 t22 0 t22 0 t21 0" /></svg>
+            <p class="dek" data-animate style="--stagger:2"><em>Your record, day by day.</em> 坚持打卡，追踪你的学习轨迹。</p>
           </div>
-          <div class="account-box">
+          <div class="account-box" data-animate style="--stagger:3">
             <p id="user-info" class="muted">校验中...</p>
             <div class="account-actions">
               <a class="link-btn" href="/index.html">返回学习页</a>
@@ -56,6 +288,7 @@
 
         <!-- Weekly heatmap -->
         <section class="panel">
+          <span class="doodle-tape" aria-hidden="true"></span>
           <div class="section-title-row">
             <h2>近7天学习趋势</h2>
           </div>
@@ -65,7 +298,7 @@
         <!-- Word stats -->
         <section class="panel">
           <div class="section-title-row">
-            <h2>单词统计</h2>
+            <h2>单词统计<svg class="doodle-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 L14.1 9.1 L20.2 9.6 L15.6 13.6 L17.1 19.8 L12 16.4 L6.9 19.8 L8.4 13.6 L3.8 9.6 L9.9 9.1 Z" /></svg></h2>
           </div>
           <div id="word-stats-detail" class="stats-detail"></div>
         </section>
@@ -102,7 +335,6 @@
     </main>
 
     <script src="shared.js"></script>
-    <script src="effects.js"></script>
     <script src="personal.js"></script>
   </body>
 </html>
