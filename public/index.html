@@ -9,25 +9,645 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=Noto+Serif+SC:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&family=Long+Cang&family=Gochi+Hand&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
-    <link rel="stylesheet" href="effects.css" />
+    <link rel="stylesheet" href="decorations.css" />
   </head>
   <body>
-    <div class="bg-shape shape-a"></div>
-    <div class="bg-shape shape-b"></div>
+    <!-- 手绘 doodle 装饰层（纯装饰，纯 CSS 逐帧动画，不响应交互） -->
+    <div class="doodle-side" aria-hidden="true">
+      <div class="doodle doodle-plane">
+        <svg viewBox="0 0 120 100" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <!-- 铅笔抖动毛边：feTurbulence + feDisplacementMap；每帧换 seed，像逐帧重画 -->
+            <filter id="pnJit1" x="-12%" y="-12%" width="124%" height="124%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.032" numOctaves="3" seed="7" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.8" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="pnJit2" x="-12%" y="-12%" width="124%" height="124%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="3" seed="19" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="pnJit3" x="-12%" y="-12%" width="124%" height="124%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.041" numOctaves="2" seed="33" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <!-- 纸面石墨颗粒（静止叠层，不随 boiling 闪动） -->
+            <filter id="pnGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="2" seed="4" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="120" height="100" fill="#000" stroke="none" filter="url(#pnGrain)" opacity="0.3" />
+          <!-- 第 1 帧：主轮廓 + 错位叠笔 + 折痕 + 排线阴影 + 速度线 + 轨迹草稿弧 -->
+          <g class="frame" filter="url(#pnJit1)">
+            <path stroke-width="2.3" d="M8 52 L110 18 L62 90 L52 64 Z" />
+            <path stroke-width="1.5" opacity="0.35" d="M9.5 53.5 L111 19.5 L63.5 91.5 L53 65.5 Z" />
+            <path stroke-width="1.5" d="M52 64 L110 18" />
+            <path stroke-width="1.1" stroke="#3a3a35" opacity="0.5" d="M53.5 65.5 L109 20.5" />
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.2">
+              <path d="M17 50.5 l6 4" />
+              <path d="M24 47.5 l6.5 4" />
+              <path d="M31 45 l6.5 4" />
+            </g>
+            <g stroke="rgba(25,25,20,0.5)" stroke-width="1.3">
+              <path d="M59 58.5 l6.5 9.5" />
+              <path d="M64.8 54 l6.5 9.5" />
+              <path d="M70.6 49.3 l6.5 9.3" />
+              <path d="M76.4 44.7 l6 9" />
+              <path d="M82.2 40.1 l5.5 8.3" />
+              <path d="M87.5 35.8 l4.5 6.8" />
+            </g>
+            <path stroke="rgba(25,25,20,0.28)" stroke-width="1.1" d="M10 55 L52 67" />
+            <g stroke="rgba(25,25,20,0.45)" stroke-width="1.4">
+              <path d="M20 62 l18 5.5" />
+              <path d="M13 70 l14 4.5" />
+              <path d="M26 71 l9 3" />
+            </g>
+            <path stroke="rgba(25,25,20,0.22)" stroke-width="1.1" d="M4 96 Q28 84 45 72" />
+          </g>
+          <!-- 第 2 帧：整体轻移 1px，排线角度略陡，复笔更轻 -->
+          <g class="frame" filter="url(#pnJit2)">
+            <path stroke-width="2.1" d="M7 51 L109 16.5 L61 89 L51.5 63 Z" />
+            <path stroke-width="1.6" opacity="0.3" d="M8.5 52.5 L110.5 18 L62.5 90.5 L52.5 64.5 Z" />
+            <path stroke-width="1.6" d="M51.5 63 L109 16.5" />
+            <path stroke-width="1.1" stroke="#3a3a35" opacity="0.45" d="M52.8 64.8 L107.8 19" />
+            <g stroke="rgba(25,25,20,0.35)" stroke-width="1.2">
+              <path d="M16 49.5 l6.5 3.5" />
+              <path d="M23.5 46.5 l6 4" />
+              <path d="M30 44 l7 3.5" />
+            </g>
+            <g stroke="rgba(25,25,20,0.48)" stroke-width="1.25">
+              <path d="M58.5 57.5 l6 10" />
+              <path d="M64 53 l6.5 9.5" />
+              <path d="M70 48.3 l6.2 9.4" />
+              <path d="M75.8 43.8 l6 8.8" />
+              <path d="M81.5 39.2 l5.3 8.2" />
+              <path d="M86.8 34.9 l4.6 6.6" />
+            </g>
+            <path stroke="rgba(25,25,20,0.26)" stroke-width="1.1" d="M9 54 L51 66" />
+            <g stroke="rgba(25,25,20,0.42)" stroke-width="1.4">
+              <path d="M19 61 l17 6" />
+              <path d="M12 68.5 l15 4" />
+              <path d="M25 69.5 l10 3.5" />
+            </g>
+            <path stroke="rgba(25,25,20,0.2)" stroke-width="1.1" d="M3 94 Q27 82 44 70.5" />
+          </g>
+          <!-- 第 3 帧：主线压感最重，上翼排线多一笔，叠笔反向错位 -->
+          <g class="frame" filter="url(#pnJit3)">
+            <path stroke-width="2.4" d="M9 53 L111 19 L63 91 L53 65 Z" />
+            <path stroke-width="1.4" opacity="0.38" d="M7.5 51.5 L109.5 17 L61.5 89.5 L51.5 63.5 Z" />
+            <path stroke-width="1.4" d="M53 65 L111 19" />
+            <path stroke-width="1.1" stroke="#3a3a35" opacity="0.5" d="M54.2 66.2 L110 21.5" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.2">
+              <path d="M18 51.5 l6 4.2" />
+              <path d="M25 48.5 l6.5 4.2" />
+              <path d="M32 46 l6.3 4" />
+              <path d="M39 43.5 l6 3.8" />
+            </g>
+            <g stroke="rgba(25,25,20,0.52)" stroke-width="1.3">
+              <path d="M60 60 l6.5 9.3" />
+              <path d="M66 55.3 l6.6 9.2" />
+              <path d="M71.8 50.6 l6.4 9.2" />
+              <path d="M77.5 46 l6 8.8" />
+              <path d="M83.3 41.4 l5.4 8.2" />
+              <path d="M88.5 37 l4.4 6.6" />
+            </g>
+            <path stroke="rgba(25,25,20,0.3)" stroke-width="1.1" d="M11 56 L53 68" />
+            <g stroke="rgba(25,25,20,0.46)" stroke-width="1.4">
+              <path d="M21 63 l19 5" />
+              <path d="M14 71 l13 5" />
+              <path d="M27 72 l8 3.5" />
+            </g>
+            <path stroke="rgba(25,25,20,0.24)" stroke-width="1.1" d="M5 98 Q29 85 46 73" />
+          </g>
+        </svg>
+      </div>
+      <div class="doodle doodle-pencil">
+        <svg viewBox="0 0 60 170" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <filter id="pcJit1" x="-30%" y="-8%" width="160%" height="116%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" seed="11" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="pcJit2" x="-30%" y="-8%" width="160%" height="116%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.036" numOctaves="2" seed="27" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="pcGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="9" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="60" height="170" fill="#000" stroke="none" filter="url(#pcGrain)" opacity="0.3" />
+          <!-- 第 1 帧：橡皮头 + 金属箍压痕 + 笔杆叠笔 + 棱面线 + 右棱面排线 + 削尖木杆排线 + 铅芯 -->
+          <g class="frame" filter="url(#pcJit1)">
+            <path stroke-width="2" d="M18 14 q11 -5 22 0 l1 11 q-12 5 -23 0 z" />
+            <path stroke-width="1.3" opacity="0.35" d="M19 15.5 q10.5 -4.5 21 0 l1 10.5 q-11 4.5 -22 0 z" />
+            <path stroke-width="1.5" d="M17.5 30 q11.5 4 23.5 0" />
+            <path stroke-width="1.5" d="M17.5 36 q11.5 4 23.5 0" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1">
+              <path d="M23 30.5 l0 5.5" />
+              <path d="M29 31.5 l0 5.5" />
+              <path d="M35 30.5 l0 5.5" />
+            </g>
+            <path stroke="rgba(25,25,20,0.45)" stroke-width="1.2" d="M17.5 42 q11.5 3 23 0" />
+            <path stroke-width="2.2" d="M17.5 42 L19 124" />
+            <path stroke-width="2.2" d="M40.5 42 L39 124" />
+            <path stroke-width="1.4" opacity="0.35" d="M18.8 43 L20.2 123" />
+            <path stroke-width="1.4" opacity="0.35" d="M41.6 43 L40.2 123" />
+            <path stroke-width="1.25" stroke="#3a3a35" d="M23.5 44 L24.3 121" />
+            <path stroke-width="1.15" stroke="rgba(25,25,20,0.5)" d="M34.5 44 L34.2 121" />
+            <g stroke="rgba(25,25,20,0.42)" stroke-width="1.15">
+              <path d="M34.5 50 l4.5 6" />
+              <path d="M34.5 62 l4.5 6" />
+              <path d="M34.5 74 l4.5 6" />
+              <path d="M34.5 86 l4.5 6" />
+              <path d="M34.5 98 l4.5 6" />
+              <path d="M34.5 110 l4.3 6" />
+            </g>
+            <path stroke-width="2" d="M19 124 L28.5 149 L39 124" />
+            <g stroke="rgba(25,25,20,0.45)" stroke-width="1.1">
+              <path d="M21.5 130 q4 2.5 8 3.5" />
+              <path d="M24 137 q3 2 6 2.5" />
+              <path d="M26.3 143 q2 1.5 4 1.5" />
+            </g>
+            <path stroke-width="2.6" d="M28.5 149 L28.8 158" />
+            <path stroke-width="1.2" opacity="0.4" d="M30.2 149.5 L30.4 156" />
+          </g>
+          <!-- 第 2 帧：压痕错位、排线间距略变、笔尖削角稍钝 -->
+          <g class="frame" filter="url(#pcJit2)">
+            <path stroke-width="2.1" d="M17 15 q11.5 -5.5 23 0 l0.5 11 q-11.5 5 -23.5 0 z" />
+            <path stroke-width="1.3" opacity="0.3" d="M18.2 16.2 q10.5 -4.2 21 0 l0.6 10 q-11 4.6 -21.6 0 z" />
+            <path stroke-width="1.4" d="M17 31 q11.5 3.5 23 0" />
+            <path stroke-width="1.6" d="M17 36.5 q11.5 4 23 0" />
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1">
+              <path d="M24 31.5 l0 5" />
+              <path d="M30 32 l0 5.5" />
+              <path d="M36 31.5 l0 5" />
+            </g>
+            <path stroke="rgba(25,25,20,0.42)" stroke-width="1.2" d="M17 42.5 q11.5 3 23 0" />
+            <path stroke-width="2.1" d="M17 42.5 L18.5 123.5" />
+            <path stroke-width="2.3" d="M40 42.5 L38.6 123.5" />
+            <path stroke-width="1.3" opacity="0.38" d="M18.4 44 L19.7 122.5" />
+            <path stroke-width="1.4" opacity="0.32" d="M41.2 44 L39.8 122.5" />
+            <path stroke-width="1.2" stroke="#3a3a35" d="M24.2 44.5 L24.8 120.5" />
+            <path stroke-width="1.15" stroke="rgba(25,25,20,0.45)" d="M34 44.5 L33.6 120.5" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.15">
+              <path d="M34 51 l4.6 6.2" />
+              <path d="M34 63.5 l4.6 6.2" />
+              <path d="M34 76 l4.6 6.2" />
+              <path d="M34 88.5 l4.6 6.2" />
+              <path d="M34 101 l4.6 6.2" />
+              <path d="M34 113 l4.4 6" />
+            </g>
+            <path stroke-width="2" d="M18.5 123.5 L28 148.5 L38.6 123.5" />
+            <g stroke="rgba(25,25,20,0.42)" stroke-width="1.1">
+              <path d="M21 129.5 q4.5 2.5 8.5 3.2" />
+              <path d="M23.6 136.5 q3.2 2 6.2 2.4" />
+              <path d="M26 142.5 q2 1.4 4 1.4" />
+            </g>
+            <path stroke-width="2.5" d="M28 148.5 L28.3 157.5" />
+            <path stroke-width="1.1" opacity="0.42" d="M29.8 149 L30 155.5" />
+          </g>
+        </svg>
+      </div>
+      <div class="doodle doodle-eraser">
+        <svg viewBox="0 0 110 80" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <filter id="erJit1" x="-12%" y="-15%" width="124%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.033" numOctaves="3" seed="5" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.7" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="erJit2" x="-12%" y="-15%" width="124%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.027" numOctaves="3" seed="23" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="3.1" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="erGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="2" seed="13" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="110" height="80" fill="#000" stroke="none" filter="url(#erGrain)" opacity="0.3" />
+          <!-- 第 1 帧：轮廓叠笔 + 纸套分界 + 朱砂小标签 + 右侧/底边排线 + 磨损补笔 + 橡皮屑 -->
+          <g class="frame" filter="url(#erJit1)">
+            <path stroke-width="2.2" d="M24 22 h60 q12 0 12 11 v16 q0 11 -12 11 h-60 q-11 0 -11 -11 v-16 q0 -11 11 -11 z" />
+            <path stroke-width="1.5" opacity="0.35" d="M25 23.5 h59.5 q11.5 0 11.5 10.5 v15.5 q0 10.5 -11.5 10.5 h-59.5 q-10.5 0 -10.5 -10.5 v-15.5 q0 -10.5 10.5 -10.5 z" />
+            <path stroke-width="1.5" d="M45 22.5 L45 60" />
+            <path stroke-width="1.5" d="M67 22.5 L67 60" />
+            <path stroke-width="1" stroke="rgba(25,25,20,0.35)" d="M46.8 24 L46.8 58" />
+            <g stroke="#db3356" stroke-width="1.6" opacity="0.85">
+              <path d="M51 36 q7 -4 11 1 q3 5 -3 7.5 q-7 2.5 -10 -2 q-2 -4 2 -6.5 z" />
+              <path d="M50 50 q5 2 12 0" />
+            </g>
+            <g stroke="rgba(25,25,20,0.45)" stroke-width="1.2">
+              <path d="M73 28 l6 8" />
+              <path d="M80 26.5 l6 8" />
+              <path d="M87 27 l5.5 7.5" />
+              <path d="M74 40 l5 6.5" />
+              <path d="M82 40 l4.5 6" />
+            </g>
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.15">
+              <path d="M18 55.5 l4.5 -5" />
+              <path d="M27 57.5 l4.5 -5" />
+              <path d="M36 58 l4.5 -5" />
+              <path d="M50 58.5 l4.5 -5" />
+              <path d="M59 58.5 l4.5 -5" />
+              <path d="M76 57.5 l4.5 -5" />
+              <path d="M85 55.5 l4.5 -5" />
+            </g>
+            <path stroke-width="1.2" stroke="rgba(25,25,20,0.5)" d="M15 32 q-1.5 8 0.5 17" />
+            <g stroke="rgba(25,25,20,0.5)" stroke-width="1.3">
+              <path d="M99 63 l2.5 1" />
+              <path d="M104 58.5 l2 0.8" />
+              <path d="M101 67.5 l1.8 1.2" />
+            </g>
+          </g>
+          <!-- 第 2 帧：轮廓轻移，排线角度略变，朱砂标签重画一笔 -->
+          <g class="frame" filter="url(#erJit2)">
+            <path stroke-width="2" d="M23 23 h61 q11.5 0 11.5 10.5 v16 q0 11.5 -11.5 11.5 h-61 q-11 0 -11 -11.5 v-16 q0 -10.5 11 -10.5 z" />
+            <path stroke-width="1.5" opacity="0.32" d="M24.5 24.6 h59.5 q11 0 11 10 v15.5 q0 11 -11 11 h-59.5 q-10.5 0 -10.5 -11 v-15.5 q0 -10 10.5 -10 z" />
+            <path stroke-width="1.6" d="M44.5 23.5 L44.5 60.5" />
+            <path stroke-width="1.4" d="M67.5 23.5 L67.5 60.5" />
+            <path stroke-width="1" stroke="rgba(25,25,20,0.33)" d="M66 25 L66 58.5" />
+            <g stroke="#db3356" stroke-width="1.5" opacity="0.85">
+              <path d="M51.5 36.5 q6.5 -4.5 10.8 0.8 q3.2 5 -2.8 7.6 q-7 2.6 -10.2 -1.8 q-2.2 -4.2 2.2 -6.6 z" />
+              <path d="M50 50.5 q5.5 1.8 12 -0.2" />
+            </g>
+            <g stroke="rgba(25,25,20,0.43)" stroke-width="1.2">
+              <path d="M74 28.5 l5.8 8" />
+              <path d="M81 27 l5.8 8" />
+              <path d="M88 28 l5 7.2" />
+              <path d="M75 40.5 l4.8 6.4" />
+              <path d="M83 40 l4.4 5.8" />
+            </g>
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.15">
+              <path d="M19 56 l4.4 -5" />
+              <path d="M28 58 l4.4 -5" />
+              <path d="M37 58.5 l4.4 -5" />
+              <path d="M51 59 l4.4 -5" />
+              <path d="M60 59 l4.4 -5" />
+              <path d="M77 58 l4.4 -5" />
+              <path d="M86 56 l4.4 -5" />
+            </g>
+            <path stroke-width="1.2" stroke="rgba(25,25,20,0.48)" d="M14 33 q-1.2 8 0.8 16.5" />
+            <g stroke="rgba(25,25,20,0.48)" stroke-width="1.3">
+              <path d="M100 62.5 l2.4 1.2" />
+              <path d="M105 59 l1.8 0.7" />
+              <path d="M102 67 l2 1" />
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="doodle doodle-car">
+        <svg viewBox="0 0 150 90" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <!-- 每帧独立抖动滤镜：换 seed 像逐帧重画 -->
+            <filter id="carJit1" x="-12%" y="-15%" width="124%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.034" numOctaves="3" seed="41" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="carJit2" x="-12%" y="-15%" width="124%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.029" numOctaves="3" seed="57" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="3.1" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="carGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="2" seed="8" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="150" height="90" fill="#000" stroke="none" filter="url(#carGrain)" opacity="0.3" />
+          <!-- 第 1 帧：车身双笔轮廓 + 车窗 + 朱砂车窗小标 + 双轮双圈 + 轮毂十字 + 轮拱/地面排线 + 尾部速度线 -->
+          <g class="frame" filter="url(#carJit1)">
+            <path stroke-width="2.2" d="M16 64 L15 52 Q14 45 23 43 L44 40 Q50 30 64 28 L88 27 Q102 29 110 40 L128 43 Q137 45 136 54 L135 64 Z" />
+            <path stroke-width="1.4" opacity="0.35" d="M17.5 65 L16.4 52.6 Q15.5 46 24 44.2 L44.8 41.2 Q51 31.4 64.5 29.4 L88 28.4 Q101 30.4 109 41 L127.5 44.2 Q136 46.2 135 54.6 L134 65 Z" />
+            <path stroke-width="1.5" stroke="#3a3a35" d="M58 41 Q62 33 71 32 L85 31.5 Q93 33 97 41 Z" />
+            <path stroke-width="1" opacity="0.4" d="M59.5 41.5 Q63.5 34.5 71.5 33.5" />
+            <path stroke="#db3356" stroke-width="1.6" opacity="0.85" d="M66 36.5 l4 -1.2" />
+            <path stroke="rgba(25,25,20,0.4)" stroke-width="1.1" d="M104 42 L103 62" />
+            <path stroke-width="2" d="M31 64 a11 11 0 1 0 22 0 a11 11 0 1 0 -22 0 Z" />
+            <path stroke-width="1.2" opacity="0.35" d="M32 65 a10 10 0 1 0 20 0 a10 10 0 1 0 -20 0 Z" />
+            <path stroke-width="2" d="M97 64 a11 11 0 1 0 22 0 a11 11 0 1 0 -22 0 Z" />
+            <path stroke-width="1.2" opacity="0.35" d="M98.2 65 a9.8 9.8 0 1 0 19.6 0 a9.8 9.8 0 1 0 -19.6 0 Z" />
+            <g stroke="#3a3a35" stroke-width="1.2">
+              <path d="M42 60 l0 8" />
+              <path d="M38 64 l8 0" />
+              <path d="M108 60 l0 8" />
+              <path d="M104 64 l8 0" />
+            </g>
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.1">
+              <path d="M24 55 l5 -6" />
+              <path d="M58 56 l5 -6" />
+              <path d="M90 55 l5 -6" />
+              <path d="M124 56 l5 -6" />
+            </g>
+            <g stroke="rgba(25,25,20,0.45)" stroke-width="1.2">
+              <path d="M22 78 l7 -5" />
+              <path d="M34 79 l7 -5" />
+              <path d="M46 79.5 l7 -5" />
+              <path d="M58 79.5 l7 -5" />
+              <path d="M70 79 l7 -5" />
+              <path d="M82 79 l7 -5" />
+              <path d="M94 79.5 l7 -5" />
+              <path d="M106 79 l7 -5" />
+              <path d="M118 78.5 l7 -5" />
+              <path d="M130 78 l6 -4.5" />
+            </g>
+            <g stroke="rgba(25,25,20,0.45)" stroke-width="1.4">
+              <path d="M2 44 l9 -1" />
+              <path d="M1 53 l11 0" />
+              <path d="M3 61 l8 1" />
+            </g>
+          </g>
+          <!-- 第 2 帧：整体错 1px，轮毂十字转 45°，速度线长短变化，朱砂小标重画 -->
+          <g class="frame" filter="url(#carJit2)">
+            <path stroke-width="2.3" d="M15 65 L14.5 52.5 Q13.5 44.5 22.5 42.5 L43.5 39.5 Q49.5 29.5 63.5 27.5 L87.5 26.5 Q102.5 28.5 110.5 39.5 L128.5 42.5 Q137.5 44.5 136.5 54 L135.5 65 Z" />
+            <path stroke-width="1.3" opacity="0.3" d="M16 63.5 L15.6 52 Q14.8 45.6 23 43.8 L44 41 Q50.2 31 64 29 L87.8 28 Q101.2 30 108.8 40.6 L127 43.8 Q135.6 45.8 134.8 54.4 L133.8 63.5 Z" />
+            <path stroke-width="1.4" stroke="#3a3a35" d="M58.5 40.5 Q62.5 32.5 71.5 31.5 L85 31 Q93.5 32.5 97.5 40.5 Z" />
+            <path stroke-width="1" opacity="0.42" d="M60 41 Q64 34 72 33" />
+            <path stroke="#db3356" stroke-width="1.5" opacity="0.85" d="M66.5 37 l3.8 -1.4" />
+            <path stroke="rgba(25,25,20,0.38)" stroke-width="1.1" d="M104.5 42.5 L103.4 62" />
+            <path stroke-width="2.1" d="M30.5 64.5 a10.5 10.5 0 1 0 21 0 a10.5 10.5 0 1 0 -21 0 Z" />
+            <path stroke-width="1.2" opacity="0.33" d="M31.6 65.4 a9.6 9.6 0 1 0 19.2 0 a9.6 9.6 0 1 0 -19.2 0 Z" />
+            <path stroke-width="1.9" d="M96.5 64 a10.8 10.8 0 1 0 21.6 0 a10.8 10.8 0 1 0 -21.6 0 Z" />
+            <path stroke-width="1.2" opacity="0.36" d="M97.8 64.8 a9.9 9.9 0 1 0 19.8 0 a9.9 9.9 0 1 0 -19.8 0 Z" />
+            <g stroke="#3a3a35" stroke-width="1.2">
+              <path d="M39 61 l6 6" />
+              <path d="M45 61 l-6 6" />
+              <path d="M105 61 l6 6" />
+              <path d="M111 61 l-6 6" />
+            </g>
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.1">
+              <path d="M23 54.5 l5.2 -6" />
+              <path d="M57 55.5 l5.2 -6" />
+              <path d="M89 54.5 l5.2 -6" />
+              <path d="M123 55.5 l5.2 -6" />
+            </g>
+            <g stroke="rgba(25,25,20,0.42)" stroke-width="1.2">
+              <path d="M21 77.5 l7.2 -5" />
+              <path d="M33 78.5 l7.2 -5" />
+              <path d="M45 79 l7.2 -5" />
+              <path d="M57 79 l7.2 -5" />
+              <path d="M69 78.5 l7.2 -5" />
+              <path d="M81 78.5 l7.2 -5" />
+              <path d="M93 79 l7.2 -5" />
+              <path d="M105 78.5 l7.2 -5" />
+              <path d="M117 78 l7.2 -5" />
+              <path d="M129 77.5 l6.2 -4.4" />
+            </g>
+            <g stroke="rgba(25,25,20,0.42)" stroke-width="1.4">
+              <path d="M2 45 l10 -1.2" />
+              <path d="M1 54 l9 0.4" />
+              <path d="M4 62 l9 0.8" />
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="doodle doodle-top">
+        <svg viewBox="0 0 90 100" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <filter id="topJit1" x="-15%" y="-10%" width="130%" height="120%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.031" numOctaves="3" seed="63" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.7" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="topJit2" x="-15%" y="-10%" width="130%" height="120%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.038" numOctaves="2" seed="71" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="3" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="topGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="17" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="90" height="100" fill="#000" stroke="none" filter="url(#topGrain)" opacity="0.3" />
+          <!-- 第 1 帧：柄 + 主轮廓双笔 + 赤道环带 + 锥面/肩部排线 + 两侧旋线 + 着地排线 -->
+          <g class="frame" filter="url(#topJit1)">
+            <path stroke-width="2" d="M43 12 L44 26" />
+            <path stroke-width="1.2" opacity="0.35" d="M44.6 12.5 L45.4 25.5" />
+            <path stroke-width="1.6" d="M40 10 q3 -3 6.5 0" />
+            <path stroke-width="2.2" d="M26 34 Q44 24 63 33 Q72 45 62 57 Q52 67 45 81 Q37 68 27 58 Q17 46 26 34 Z" />
+            <path stroke-width="1.4" opacity="0.35" d="M27 35.5 Q44.5 25.5 62 34 Q70.5 45.5 61 57.5 Q51.5 67.5 44.8 79.5 Q38 67.5 28.5 58.5 Q19 47 27 35.5 Z" />
+            <path stroke-width="1.4" d="M22 44 Q44 54 67 44" />
+            <path stroke-width="1.2" stroke="#3a3a35" d="M24 51 Q44 60 64 51" />
+            <path stroke-width="1" opacity="0.4" d="M25 53.5 Q44 62 63 53.5" />
+            <g stroke="rgba(25,25,20,0.42)" stroke-width="1.1">
+              <path d="M33 62 l6 -7" />
+              <path d="M39 67 l6 -7" />
+              <path d="M45 71 l6 -7" />
+              <path d="M51 67 l5 -6" />
+              <path d="M56 62 l5 -6" />
+            </g>
+            <g stroke="rgba(25,25,20,0.35)" stroke-width="1">
+              <path d="M30 33 l4 3" />
+              <path d="M37 30.5 l4 3" />
+              <path d="M44 29.5 l4 3" />
+              <path d="M51 30 l4 3" />
+            </g>
+            <g stroke="rgba(25,25,20,0.45)" stroke-width="1.3">
+              <path d="M12 38 q-5 7 -1 14" />
+              <path d="M77 37 q5 7 1 14" />
+            </g>
+            <path stroke-width="1.3" stroke="rgba(25,25,20,0.5)" d="M41 85 q4 2 8 0" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.1">
+              <path d="M30 90 l6 -4" />
+              <path d="M40 91 l6 -4" />
+              <path d="M50 91 l6 -4" />
+              <path d="M60 90 l6 -4" />
+            </g>
+          </g>
+          <!-- 第 2 帧：倾斜角反向（尖点右移 1.8px），旋线相位提前并多一笔，环带下移 -->
+          <g class="frame" filter="url(#topJit2)">
+            <path stroke-width="1.9" d="M45.5 11 L46.2 25" />
+            <path stroke-width="1.2" opacity="0.32" d="M44.2 11.5 L45 24.8" />
+            <path stroke-width="1.5" d="M42.5 9 q3 -2.8 6.3 0.2" />
+            <path stroke-width="2.1" d="M28 33 Q46 23.5 64.5 32.5 Q73.5 44.5 63.5 56.5 Q54 66.5 46.8 80.5 Q39.5 67.5 29.5 57.5 Q19.5 45.5 28 33 Z" />
+            <path stroke-width="1.4" opacity="0.38" d="M28.8 34.6 Q46 25 63.4 33.6 Q72 44.8 62.4 56.2 Q53 66.2 46.6 79 Q40.2 66.8 30.4 57.8 Q21 46.4 28.8 34.6 Z" />
+            <path stroke-width="1.5" d="M24 43.5 Q46 53.5 68 43" />
+            <path stroke-width="1.1" stroke="#3a3a35" d="M26 50.5 Q46 59.5 65.5 50" />
+            <path stroke-width="1" opacity="0.38" d="M27 53 Q46 61.5 64.5 52.5" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.1">
+              <path d="M35 61.5 l6 -7.2" />
+              <path d="M41 66.5 l6 -7.2" />
+              <path d="M47 70.5 l6 -7.2" />
+              <path d="M53 66.5 l5 -6.2" />
+              <path d="M58 61.5 l5 -6.2" />
+            </g>
+            <g stroke="rgba(25,25,20,0.33)" stroke-width="1">
+              <path d="M32 32.5 l4.2 3" />
+              <path d="M39 30 l4.2 3" />
+              <path d="M46 29 l4.2 3" />
+              <path d="M53 29.8 l4.2 3" />
+            </g>
+            <g stroke="rgba(25,25,20,0.42)" stroke-width="1.3">
+              <path d="M14 40 q-4 6 -1.5 12" />
+              <path d="M79 39 q4.5 6.5 1 13" />
+              <path d="M10 46 q-2 4 -0.5 8" opacity="0.6" />
+            </g>
+            <path stroke-width="1.3" stroke="rgba(25,25,20,0.48)" d="M43 84.5 q4 2.2 8 0.2" />
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.1">
+              <path d="M32 89.5 l6 -4.2" />
+              <path d="M42 90.5 l6 -4.2" />
+              <path d="M52 90.5 l6 -4.2" />
+              <path d="M61 89 l5.6 -4" />
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="doodle doodle-boat">
+        <svg viewBox="0 0 130 90" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <filter id="btJit1" x="-12%" y="-14%" width="124%" height="128%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="3" seed="83" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.8" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="btJit2" x="-12%" y="-14%" width="124%" height="128%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.036" numOctaves="2" seed="97" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.5" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="btGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.76" numOctaves="2" seed="21" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="130" height="90" fill="#000" stroke="none" filter="url(#btGrain)" opacity="0.3" />
+          <!-- 第 1 帧：梯形船体双笔 + 中央三角折峰 + 折痕 + 船腹排线 + 水波两道 -->
+          <g class="frame" filter="url(#btJit1)">
+            <path stroke-width="2.2" d="M14 54 L30 72 L100 72 L116 54 Z" />
+            <path stroke-width="1.4" opacity="0.35" d="M15.5 55.5 L31 73.5 L99.5 73.5 L114.5 55.5 Z" />
+            <path stroke-width="2" d="M48 54 L65 24 L82 54 Z" />
+            <path stroke-width="1.3" opacity="0.35" d="M49.5 55 L65.8 26 L80.8 55 Z" />
+            <path stroke-width="1.2" stroke="#3a3a35" d="M65 24 L65 54" />
+            <path stroke-width="1" opacity="0.4" d="M66.6 27 L66.4 52" />
+            <path stroke-width="1.3" stroke="#3a3a35" opacity="0.7" d="M48 54 L30 72" />
+            <path stroke-width="1.3" stroke="#3a3a35" opacity="0.7" d="M82 54 L100 72" />
+            <g stroke="rgba(25,25,20,0.42)" stroke-width="1.15">
+              <path d="M40 68 l7 -8" />
+              <path d="M50 69 l7 -8" />
+              <path d="M60 69.5 l7 -8" />
+              <path d="M70 69.5 l7 -8" />
+              <path d="M80 69 l7 -8" />
+              <path d="M90 68 l7 -8" />
+            </g>
+            <g stroke="rgba(25,25,20,0.35)" stroke-width="1.05">
+              <path d="M20 58 l6 4" />
+              <path d="M104 60 l6 -4" />
+              <path d="M108 64 l5 -3.5" />
+            </g>
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.3">
+              <path d="M8 82 q8 -5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" />
+              <path d="M24 87 q7 -4 14 0 t14 0 t14 0 t14 0" opacity="0.7" />
+            </g>
+          </g>
+          <!-- 第 2 帧：船体下移 0.5px 并重描，折峰左倾，水波相位错开 -->
+          <g class="frame" filter="url(#btJit2)">
+            <path stroke-width="2.1" d="M13.5 55 L29.5 72.5 L99.5 72.5 L115.5 55 Z" />
+            <path stroke-width="1.5" opacity="0.32" d="M15 53.8 L30.6 71.6 L100 71.4 L114.4 53.6 Z" />
+            <path stroke-width="2.1" d="M47.5 54.5 L64.5 25 L81.5 54.5 Z" />
+            <path stroke-width="1.2" opacity="0.38" d="M49 55.5 L65.2 27 L80.2 55.5 Z" />
+            <path stroke-width="1.1" stroke="#3a3a35" d="M64.5 25 L64.8 54" />
+            <path stroke-width="1" opacity="0.42" d="M66 28 L66.2 52.5" />
+            <path stroke-width="1.3" stroke="#3a3a35" opacity="0.65" d="M47.5 54.5 L29.5 72.5" />
+            <path stroke-width="1.3" stroke="#3a3a35" opacity="0.65" d="M81.5 54.5 L99.5 72.5" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.15">
+              <path d="M39 67.5 l7.2 -8" />
+              <path d="M49 68.5 l7.2 -8" />
+              <path d="M59 69 l7.2 -8" />
+              <path d="M69 69 l7.2 -8" />
+              <path d="M79 68.5 l7.2 -8" />
+              <path d="M89 67.5 l7.2 -8" />
+            </g>
+            <g stroke="rgba(25,25,20,0.33)" stroke-width="1.05">
+              <path d="M19 57.5 l6.2 4" />
+              <path d="M103 59.5 l6.2 -4" />
+              <path d="M107 63.5 l5.2 -3.6" />
+            </g>
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.3">
+              <path d="M12 81 q8 -5.5 16 0 t16 0 t16 0 t16 0 t16 0 t16 0" />
+              <path d="M20 86.5 q7 -4.2 14 0 t14 0 t14 0 t14 0 t14 0" opacity="0.65" />
+            </g>
+          </g>
+        </svg>
+      </div>
+      <div class="doodle doodle-marble">
+        <svg viewBox="0 0 60 70" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+          <defs>
+            <filter id="mbJit1" x="-18%" y="-15%" width="136%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="103" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="mbJit2" x="-18%" y="-15%" width="136%" height="130%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.033" numOctaves="3" seed="111" result="n" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="mbGrain" x="0" y="0" width="100%" height="100%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="2" seed="29" />
+              <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.85 0.85 0.85 0 -1.75" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="60" height="70" fill="#000" stroke="none" filter="url(#mbGrain)" opacity="0.3" />
+          <!-- 第 1 帧：外轮廓双圈 + 猫眼旋纹 + 左上高光 + 右下排线反光 + 地面投影排线 -->
+          <g class="frame" filter="url(#mbJit1)">
+            <path stroke-width="2.2" d="M11 29 a19 19 0 1 0 38 0 a19 19 0 1 0 -38 0 Z" />
+            <path stroke-width="1.3" opacity="0.35" d="M12.2 29.6 a17.8 17.8 0 1 0 35.6 0 a17.8 17.8 0 1 0 -35.6 0 Z" />
+            <path stroke-width="1.5" stroke="#3a3a35" d="M17 25 Q26 17 37 21 Q45 25 41 32 Q36 38 28 35 Q22 32 25 27 Q27 24 31 25" />
+            <path stroke-width="1" opacity="0.45" d="M20 33 Q28 40 37 36" />
+            <path stroke-width="1.6" d="M18.5 19 q4 -4.5 9.5 -4.5" />
+            <path stroke-width="1.2" opacity="0.5" d="M21 15.5 q2 -1.5 4.5 -1.5" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.05">
+              <path d="M36 41 l5 -6" />
+              <path d="M41 38 l5 -6" />
+              <path d="M31 43.5 l5 -6" />
+            </g>
+            <path stroke-width="1.3" stroke="rgba(25,25,20,0.45)" d="M14 56 q16 7 32 0" />
+            <g stroke="rgba(25,25,20,0.4)" stroke-width="1.1">
+              <path d="M18 60 l6 -4" />
+              <path d="M27 61.5 l6 -4" />
+              <path d="M36 61.5 l6 -4" />
+              <path d="M45 60 l6 -4" />
+            </g>
+          </g>
+          <!-- 第 2 帧：高光上移 1.5px，旋纹重描，投影略收 -->
+          <g class="frame" filter="url(#mbJit2)">
+            <path stroke-width="2.1" d="M10.5 28.5 a18.7 18.7 0 1 0 37.4 0 a18.7 18.7 0 1 0 -37.4 0 Z" />
+            <path stroke-width="1.3" opacity="0.32" d="M11.8 30 a17.5 17.5 0 1 0 35 0 a17.5 17.5 0 1 0 -35 0 Z" />
+            <path stroke-width="1.4" stroke="#3a3a35" d="M17.5 24 Q26.5 16.5 37 20.5 Q44.5 24.5 40.5 31.5 Q35.5 37.5 28 34 Q22.5 31 25.5 26.5 Q27.5 23.5 31.5 24.5" />
+            <path stroke-width="1" opacity="0.42" d="M20.5 32.5 Q28.5 39.5 37 35.5" />
+            <path stroke-width="1.5" d="M20 17.5 q4 -4 9 -4" />
+            <path stroke-width="1.2" opacity="0.48" d="M22.8 14.5 q2 -1.4 4.2 -1.3" />
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.05">
+              <path d="M36.5 40.5 l5.2 -6" />
+              <path d="M41.5 37.5 l5.2 -6" />
+              <path d="M31.5 43 l5.2 -6" />
+            </g>
+            <path stroke-width="1.3" stroke="rgba(25,25,20,0.43)" d="M14.5 55.5 q15.5 6.5 31 0" />
+            <g stroke="rgba(25,25,20,0.38)" stroke-width="1.1">
+              <path d="M19 59.5 l6 -4.2" />
+              <path d="M28 61 l6 -4.2" />
+              <path d="M37 61 l6 -4.2" />
+              <path d="M45 59.5 l5.6 -4" />
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
 
     <main class="container">
-      <header class="hero">
-        <div class="top-row">
-          <div>
-            <p class="badge">CET 学习站</p>
-            <h1>英语四六级高频词背诵</h1>
-            <p>账号登录后背词，自动记录到你的专属学习档案。</p>
+      <!-- ===== 刊头 ===== -->
+      <header class="masthead">
+        <div class="masthead-meta">
+          <span class="kicker">CET WORD MASTER</span>
+          <span class="dateline">EST. 2026 · 学习档案</span>
+        </div>
+        <div class="masthead-main">
+          <div class="masthead-title">
+            <p class="badge" data-animate style="--stagger:0">CET 学习站</p>
+            <h1 data-animate style="--stagger:1">英语四六级高频词背诵</h1>
+            <svg class="doodle-underline" viewBox="0 0 224 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 9 q11 -7 22 0 t22 0 t22 0 t22 0 t22 0 t22 0 t22 0 t22 0 t22 0 t21 0" /></svg>
+            <p class="dek" data-animate style="--stagger:2"><em>A daily record of high-frequency vocabulary.</em> 账号登录后背词，自动记录到你的专属学习档案。</p>
           </div>
-          <div class="account-box">
+          <div class="account-box" data-animate style="--stagger:3">
             <p id="user-info" class="muted">未登录</p>
             <div class="account-actions">
               <a id="grammar-link" class="link-btn hidden" href="/grammar.html">语法</a>
@@ -40,7 +660,9 @@
         </div>
       </header>
 
+      <!-- ===== 登录 / 注册 ===== -->
       <section id="auth-panel" class="panel" aria-label="账号登录">
+        <span class="doodle-tape" aria-hidden="true"></span>
         <div class="segment" role="tablist" aria-label="登录注册切换" id="auth-segment">
           <div class="slider" id="auth-slider"></div>
           <button id="tab-login" class="segment-btn active" role="tab" aria-selected="true">登录</button>
@@ -74,207 +696,233 @@
         <p id="auth-msg" class="hint"></p>
       </section>
 
+      <!-- ===== 学习区 ===== -->
       <section id="app-panel" class="hidden">
-        <section class="panel" aria-label="等级选择">
-          <div class="segment" role="tablist" aria-label="四六级切换" id="level-segment">
-            <div class="slider" id="level-slider"></div>
-            <button id="btn-cet4" class="segment-btn active" role="tab" aria-selected="true">四级（CET-4）</button>
-            <button id="btn-cet6" class="segment-btn" role="tab" aria-selected="false">六级（CET-6）</button>
+        <section class="panel control-strip" aria-label="学习控制">
+          <div class="control-group">
+            <p class="mode-label">等级 Level</p>
+            <div class="segment" role="tablist" aria-label="四六级切换" id="level-segment">
+              <div class="slider" id="level-slider"></div>
+              <button id="btn-cet4" class="segment-btn active" role="tab" aria-selected="true">四级（CET-4）</button>
+              <button id="btn-cet6" class="segment-btn" role="tab" aria-selected="false">六级（CET-6）</button>
+            </div>
+          </div>
+          <div class="control-group">
+            <p class="mode-label">板块 Section</p>
+            <div class="segment" role="tablist" aria-label="功能板块切换" id="nav-segment">
+              <div class="slider" id="nav-slider"></div>
+              <button id="nav-tab-daily" class="segment-btn active" role="tab" aria-selected="true">每日任务</button>
+              <button id="nav-tab-study" class="segment-btn" role="tab" aria-selected="false">自由背词</button>
+              <button id="nav-tab-records" class="segment-btn" role="tab" aria-selected="false">学习记录</button>
+            </div>
           </div>
         </section>
 
-        <section class="panel" aria-label="功能切换">
-          <div class="segment" role="tablist" aria-label="功能板块切换" id="nav-segment">
-            <div class="slider" id="nav-slider"></div>
-            <button id="nav-tab-daily" class="segment-btn active" role="tab" aria-selected="true">每日任务</button>
-            <button id="nav-tab-study" class="segment-btn" role="tab" aria-selected="false">自由背词</button>
-            <button id="nav-tab-records" class="segment-btn" role="tab" aria-selected="false">学习记录</button>
-          </div>
-        </section>
-
-        <!-- 每日背词 -->
+        <!-- 01 每日背词 -->
         <div id="tab-daily" class="tab-content">
-        <section class="panel" aria-label="每日背词" id="daily-panel">
-          <div class="section-title-row">
-            <h2>每日背词</h2>
-            <p id="daily-streak" class="muted"></p>
+          <div class="sec-head">
+            <span class="sec-no">01</span>
+            <h2 class="sec-title">每日任务<svg class="doodle-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 L14.1 9.1 L20.2 9.6 L15.6 13.6 L17.1 19.8 L12 16.4 L6.9 19.8 L8.4 13.6 L3.8 9.6 L9.9 9.1 Z" /></svg></h2>
+            <span class="sec-en">Daily Drill</span>
           </div>
-          <div id="daily-loading" class="hint">加载今日任务...</div>
-          <div id="daily-content" class="hidden">
-            <div class="daily-progress-bar-wrap">
-              <div class="daily-progress-bar" id="daily-progress-bar"></div>
-              <p class="daily-progress-text" id="daily-progress-text"></p>
+          <section class="panel" aria-label="每日背词" id="daily-panel">
+            <div class="section-title-row">
+              <h2>每日背词</h2>
+              <p id="daily-streak" class="muted"></p>
             </div>
+            <div id="daily-loading" class="hint">加载今日任务...</div>
+            <div id="daily-content" class="hidden">
+              <div class="daily-progress-bar-wrap">
+                <div class="daily-progress-bar" id="daily-progress-bar"></div>
+                <p class="daily-progress-text" id="daily-progress-text"></p>
+              </div>
 
-            <!-- 记忆阶段 -->
-            <div id="daily-memorize-phase">
-              <div class="daily-word-grid" id="daily-word-grid"></div>
-            </div>
+              <!-- 记忆阶段 -->
+              <div id="daily-memorize-phase">
+                <div class="daily-word-grid" id="daily-word-grid"></div>
+              </div>
 
-            <!-- 默写阶段 -->
-            <div id="daily-dictation-phase" class="hidden">
-              <div class="mode-row">
-                <p class="mode-label">默写模式</p>
-                <div class="segment mini" role="tablist" aria-label="每日默写模式" id="daily-dictation-segment">
-                  <div class="slider" id="daily-dictation-slider"></div>
-                  <button id="daily-dict-cn-en" class="segment-btn active" role="tab" aria-selected="true">中译英</button>
-                  <button id="daily-dict-en-cn" class="segment-btn" role="tab" aria-selected="false">英译中</button>
+              <!-- 默写阶段 -->
+              <div id="daily-dictation-phase" class="hidden">
+                <div class="mode-row">
+                  <p class="mode-label">默写模式</p>
+                  <div class="segment mini" role="tablist" aria-label="每日默写模式" id="daily-dictation-segment">
+                    <div class="slider" id="daily-dictation-slider"></div>
+                    <button id="daily-dict-cn-en" class="segment-btn active" role="tab" aria-selected="true">中译英</button>
+                    <button id="daily-dict-en-cn" class="segment-btn" role="tab" aria-selected="false">英译中</button>
+                  </div>
+                </div>
+                <article class="quiz-card">
+                  <p id="daily-dict-mode-tip" class="level-tag">请根据中文释义写英文单词</p>
+                  <p id="daily-dict-question" class="quiz-question"></p>
+                  <p id="daily-dict-sub" class="muted"></p>
+                  <div class="quiz-input-row">
+                    <input id="daily-dict-input" type="text" placeholder="输入答案后点击提交" />
+                    <button id="daily-dict-submit" class="primary" type="button">提交答案</button>
+                    <button id="daily-dict-next" class="secondary" type="button">换一题</button>
+                  </div>
+                  <div class="action-row quiz-actions">
+                    <button id="daily-dict-show-answer" class="danger" type="button">显示答案</button>
+                  </div>
+                  <p id="daily-dict-answer" class="quiz-answer hidden"></p>
+                  <p id="daily-dict-feedback" class="hint"></p>
+                </article>
+              </div>
+
+              <!-- 今日总结 -->
+              <div id="daily-summary" class="hidden">
+                <div class="daily-summary-card">
+                  <h3>今日任务完成</h3>
+                  <p id="daily-summary-text"></p>
+                  <button id="daily-summary-continue" class="primary">继续自由学习</button>
                 </div>
               </div>
-              <article class="quiz-card">
-                <p id="daily-dict-mode-tip" class="level-tag">请根据中文释义写英文单词</p>
-                <p id="daily-dict-question" class="quiz-question"></p>
-                <p id="daily-dict-sub" class="muted"></p>
-                <div class="quiz-input-row">
-                  <input id="daily-dict-input" type="text" placeholder="输入答案后点击提交" />
-                  <button id="daily-dict-submit" class="primary" type="button">提交答案</button>
-                  <button id="daily-dict-next" class="secondary" type="button">换一题</button>
-                </div>
-                <div class="action-row quiz-actions">
-                  <button id="daily-dict-show-answer" class="danger" type="button">显示答案</button>
-                </div>
-                <p id="daily-dict-answer" class="quiz-answer hidden"></p>
-                <p id="daily-dict-feedback" class="hint"></p>
-              </article>
             </div>
-
-            <!-- 今日总结 -->
-            <div id="daily-summary" class="hidden">
-              <div class="daily-summary-card">
-                <h3>今日任务完成</h3>
-                <p id="daily-summary-text"></p>
-                <button id="daily-summary-continue" class="primary">继续自由学习</button>
-              </div>
-            </div>
-          </div>
-        </section>
+          </section>
         </div>
 
+        <!-- 02 自由背词 -->
         <div id="tab-study" class="tab-content hidden">
-        <section class="panel" aria-label="背词区域">
-          <div class="section-title-row">
-            <h2>高频单词背诵</h2>
-            <p id="progress-text" class="muted"></p>
+          <div class="sec-head">
+            <span class="sec-no">02</span>
+            <h2 class="sec-title">自由背词</h2>
+            <span class="sec-en">Free Study</span>
           </div>
-          <div class="mode-row">
-            <p class="mode-label">背词模式</p>
-            <div class="segment mini" role="tablist" aria-label="背词模式切换" id="order-segment">
-              <div class="slider" id="order-slider"></div>
-              <button id="order-sequential" class="segment-btn active" role="tab" aria-selected="true">
-                顺序
-              </button>
-              <button id="order-random" class="segment-btn" role="tab" aria-selected="false">随机</button>
+          <section class="panel" aria-label="背词区域">
+            <div class="section-title-row">
+              <h2>高频单词背诵</h2>
+              <p id="progress-text" class="muted"></p>
             </div>
-          </div>
-
-          <article class="word-card">
-            <p class="level-tag" id="word-level">CET-4</p>
-            <h3 id="word-text">word</h3>
-            <p id="word-phonetic" class="phonetic">/wɜːd/</p>
-            <p id="word-meaning" class="meaning">词义</p>
-
-            <div class="action-row">
-              <button id="remember-btn" class="primary">记住 +1</button>
-              <button id="next-btn" class="secondary">下一个</button>
+            <div class="mode-row">
+              <p class="mode-label">背词模式</p>
+              <div class="segment mini" role="tablist" aria-label="背词模式切换" id="order-segment">
+                <div class="slider" id="order-slider"></div>
+                <button id="order-sequential" class="segment-btn active" role="tab" aria-selected="true">
+                  顺序
+                </button>
+                <button id="order-random" class="segment-btn" role="tab" aria-selected="false">随机</button>
+              </div>
             </div>
 
-            <p id="remember-hint" class="hint">你还没有记过这个词</p>
-          </article>
+            <article class="word-card">
+              <p class="level-tag" id="word-level">CET-4</p>
+              <h3 id="word-text">word</h3>
+              <p id="word-phonetic" class="phonetic">/wɜːd/</p>
+              <p id="word-meaning" class="meaning">词义</p>
 
-          <details class="list-panel">
-            <summary>查看当前等级高频词列表</summary>
-            <ul id="word-list" class="word-list"></ul>
-          </details>
-        </section>
+              <div class="action-row">
+                <button id="remember-btn" class="stamp">记住 +1</button>
+                <button id="next-btn" class="secondary">下一个</button>
+              </div>
 
-        <section class="panel" aria-label="默写训练区域">
-          <div class="section-title-row">
-            <h2>翻译默写训练</h2>
-            <p id="quiz-stats" class="muted">已答 0 题，正确 0 题，正确率 0%</p>
-          </div>
-          <div class="mode-row">
-            <p class="mode-label">训练模式</p>
-            <div class="segment mini" role="tablist" aria-label="默写模式切换" id="quiz-segment">
-              <div class="slider" id="quiz-slider"></div>
-              <button id="quiz-mode-cn-en" class="segment-btn active" role="tab" aria-selected="true">
-                中译英
-              </button>
-              <button id="quiz-mode-en-cn" class="segment-btn" role="tab" aria-selected="false">英译中</button>
-            </div>
-          </div>
+              <p id="remember-hint" class="hint margin-note">你还没有记过这个词</p>
+            </article>
 
-          <article class="quiz-card">
-            <p id="quiz-mode-tip" class="level-tag">请根据中文释义写英文单词</p>
-            <p id="quiz-question" class="quiz-question">题目</p>
-            <p id="quiz-sub" class="muted"></p>
-            <div class="quiz-input-row">
-              <input id="quiz-input" type="text" placeholder="输入答案后点击提交" />
-              <button id="quiz-submit" class="primary" type="button">提交答案</button>
-              <button id="quiz-next" class="secondary" type="button">换一题</button>
+            <details class="list-panel">
+              <summary>查看当前等级高频词列表</summary>
+              <ul id="word-list" class="word-list"></ul>
+            </details>
+          </section>
+
+          <section class="panel" aria-label="默写训练区域">
+            <div class="section-title-row">
+              <h2>翻译默写训练</h2>
+              <p id="quiz-stats" class="muted">已答 0 题，正确 0 题，正确率 0%</p>
             </div>
-            <div class="action-row quiz-actions">
-              <button id="quiz-dont-know" class="danger" type="button">我不会</button>
-              <button id="quiz-remember-after-show" class="primary hidden" type="button">
-                我记住了 +1
-              </button>
+            <div class="mode-row">
+              <p class="mode-label">训练模式</p>
+              <div class="segment mini" role="tablist" aria-label="默写模式切换" id="quiz-segment">
+                <div class="slider" id="quiz-slider"></div>
+                <button id="quiz-mode-cn-en" class="segment-btn active" role="tab" aria-selected="true">
+                  中译英
+                </button>
+                <button id="quiz-mode-en-cn" class="segment-btn" role="tab" aria-selected="false">英译中</button>
+              </div>
             </div>
-            <p id="quiz-answer" class="quiz-answer hidden"></p>
-            <p id="quiz-feedback" class="hint">答对后会自动计入记住次数和成功默写次数。</p>
-          </article>
-        </section>
+
+            <article class="quiz-card">
+              <p id="quiz-mode-tip" class="level-tag">请根据中文释义写英文单词</p>
+              <p id="quiz-question" class="quiz-question">题目</p>
+              <p id="quiz-sub" class="muted"></p>
+              <div class="quiz-input-row">
+                <input id="quiz-input" type="text" placeholder="输入答案后点击提交" />
+                <button id="quiz-submit" class="primary" type="button">提交答案</button>
+                <button id="quiz-next" class="secondary" type="button">换一题</button>
+              </div>
+              <div class="action-row quiz-actions">
+                <button id="quiz-dont-know" class="danger" type="button">我不会</button>
+                <button id="quiz-remember-after-show" class="stamp hidden" type="button">
+                  我记住了 +1
+                </button>
+              </div>
+              <p id="quiz-answer" class="quiz-answer hidden"></p>
+              <p id="quiz-feedback" class="hint">答对后会自动计入记住次数和成功默写次数。</p>
+            </article>
+          </section>
         </div>
 
+        <!-- 03 学习记录 -->
         <div id="tab-records" class="tab-content hidden">
-        <section class="panel" aria-label="我的背诵记录">
-          <div class="section-title-row">
-            <h2>我的单词背诵</h2>
-            <button id="clear-btn" class="danger">清空记录</button>
+          <div class="sec-head">
+            <span class="sec-no">03</span>
+            <h2 class="sec-title">学习记录</h2>
+            <span class="sec-en">Records</span>
           </div>
-          <div class="stats" id="stats"></div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>等级</th>
-                  <th>单词</th>
-                  <th>音标</th>
-                  <th>释义</th>
-                  <th>记过次数</th>
-                  <th>最近一次</th>
-                </tr>
-              </thead>
-              <tbody id="records-body"></tbody>
-            </table>
-          </div>
-        </section>
+          <section class="panel" aria-label="我的背诵记录">
+            <div class="section-title-row">
+              <h2>我的单词背诵</h2>
+              <button id="clear-btn" class="danger">清空记录</button>
+            </div>
+            <div class="stats" id="stats"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>等级</th>
+                    <th>单词</th>
+                    <th>音标</th>
+                    <th>释义</th>
+                    <th>记过次数</th>
+                    <th>最近一次</th>
+                  </tr>
+                </thead>
+                <tbody id="records-body"></tbody>
+              </table>
+            </div>
+          </section>
 
-        <section class="panel" aria-label="我的默写成功记录">
-          <div class="section-title-row">
-            <h2>成功默写次数</h2>
-          </div>
-          <div class="stats" id="dictation-stats"></div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>等级</th>
-                  <th>单词</th>
-                  <th>音标</th>
-                  <th>释义</th>
-                  <th>成功默写次数</th>
-                  <th>最近一次</th>
-                </tr>
-              </thead>
-              <tbody id="dictation-body"></tbody>
-            </table>
-          </div>
-        </section>
+          <section class="panel" aria-label="我的默写成功记录">
+            <div class="section-title-row">
+              <h2>成功默写次数</h2>
+            </div>
+            <div class="stats" id="dictation-stats"></div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>等级</th>
+                    <th>单词</th>
+                    <th>音标</th>
+                    <th>释义</th>
+                    <th>成功默写次数</th>
+                    <th>最近一次</th>
+                  </tr>
+                </thead>
+                <tbody id="dictation-body"></tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </section>
+
+      <!-- ===== 版权栏 ===== -->
+      <footer class="colophon">
+        <span>CET WORD MASTER · 独立开发<svg class="doodle-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path stroke-width="2.4" d="M4 13 q4.5 4 6 6 q4.5 -8.5 10.5 -13.5" /></svg></span>
+        <span>NODE.JS / EXPRESS / SQLITE · DOCKER / KUBERNETES</span>
+      </footer>
     </main>
 
     <script src="shared.js"></script>
-    <script src="effects.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
