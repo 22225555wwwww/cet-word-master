@@ -3,6 +3,10 @@ const state = {
   users: [],
   words: [],
   filterLevel: "ALL",
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 1,
   grammarPoints: [],
   grammarExamples: new Map()
 };
@@ -22,6 +26,9 @@ const els = {
   addWordForm: document.getElementById("add-word-form"),
   wordsMsg: document.getElementById("words-msg"),
   wordsBody: document.getElementById("words-body"),
+  wordsPrev: document.getElementById("words-prev"),
+  wordsNext: document.getElementById("words-next"),
+  wordsPageInfo: document.getElementById("words-page-info"),
   refreshGrammar: document.getElementById("refresh-grammar"),
   addGrammarForm: document.getElementById("add-grammar-form"),
   grammarMsg: document.getElementById("grammar-msg"),
@@ -137,11 +144,36 @@ async function loadUsers() {
 }
 
 async function loadWords() {
-  const level = state.filterLevel;
-  const query = level === "ALL" ? "" : `?level=${encodeURIComponent(level)}`;
-  const data = await api(`/api/admin/words${query}`);
+  const params = new URLSearchParams();
+  if (state.filterLevel !== "ALL") {
+    params.set("level", state.filterLevel);
+  }
+  params.set("page", state.page);
+  params.set("pageSize", state.pageSize);
+
+  const data = await api(`/api/admin/words?${params.toString()}`);
   state.words = data.words || [];
+  state.total = data.total || 0;
+  state.totalPages = data.totalPages || 1;
+  state.page = data.page || 1;
   renderWords();
+  renderWordPagination();
+}
+
+function renderWordPagination() {
+  els.wordsPageInfo.textContent = `共 ${state.total} 条 · 第 ${state.page}/${state.totalPages} 页`;
+  els.wordsPrev.disabled = state.page <= 1;
+  els.wordsNext.disabled = state.page >= state.totalPages;
+}
+
+async function goWordPage(nextPage) {
+  if (nextPage < 1 || nextPage > state.totalPages || nextPage === state.page) return;
+  state.page = nextPage;
+  try {
+    await loadWords();
+  } catch (error) {
+    showMessage(error.message, true);
+  }
 }
 
 async function handleRoleSave(userId) {
@@ -428,7 +460,16 @@ function bindEvents() {
 
   els.filterLevel.addEventListener("change", () => {
     state.filterLevel = els.filterLevel.value;
+    state.page = 1;
     loadWords().catch((error) => showMessage(error.message, true));
+  });
+
+  els.wordsPrev.addEventListener("click", () => {
+    goWordPage(state.page - 1);
+  });
+
+  els.wordsNext.addEventListener("click", () => {
+    goWordPage(state.page + 1);
   });
 
   els.addWordForm.addEventListener("submit", handleAddWord);

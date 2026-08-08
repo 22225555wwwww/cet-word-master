@@ -96,20 +96,38 @@ function createAdminRoutes(db, { requireAdmin, isValidLevel }) {
       return res.status(400).json({ message: "level 参数错误" });
     }
 
-    if (level) {
-      var words = db.prepare(
-        "SELECT id, level, word, phonetic, meaning, created_at AS createdAt " +
-        "FROM words WHERE level = ? ORDER BY id DESC"
-      ).all(level);
-      return res.json({ words: words });
-    }
+    var rawPage = Number(req.query.page || 1);
+    var rawPageSize = Number(req.query.pageSize || 50);
+    var pageSize = Number.isFinite(rawPageSize)
+      ? Math.max(1, Math.min(200, Math.floor(rawPageSize)))
+      : 50;
+    var requestedPage = Number.isFinite(rawPage) ? Math.max(1, Math.floor(rawPage)) : 1;
 
-    words = db.prepare(
-      "SELECT id, level, word, phonetic, meaning, created_at AS createdAt " +
-      "FROM words ORDER BY id DESC"
-    ).all();
+    var total = level
+      ? db.prepare("SELECT COUNT(*) AS count FROM words WHERE level = ?").get(level).count
+      : db.prepare("SELECT COUNT(*) AS count FROM words").get().count;
 
-    return res.json({ words: words });
+    var totalPages = Math.max(1, Math.ceil(total / pageSize));
+    var page = Math.min(requestedPage, totalPages);
+    var offset = (page - 1) * pageSize;
+
+    var words = level
+      ? db.prepare(
+          "SELECT id, level, word, phonetic, meaning, created_at AS createdAt " +
+          "FROM words WHERE level = ? ORDER BY id DESC LIMIT ? OFFSET ?"
+        ).all(level, pageSize, offset)
+      : db.prepare(
+          "SELECT id, level, word, phonetic, meaning, created_at AS createdAt " +
+          "FROM words ORDER BY id DESC LIMIT ? OFFSET ?"
+        ).all(pageSize, offset);
+
+    return res.json({
+      words: words,
+      total: total,
+      page: page,
+      pageSize: pageSize,
+      totalPages: totalPages
+    });
   });
 
   router.post("/words", requireAdmin, function(req, res) {
