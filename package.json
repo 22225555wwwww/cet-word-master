@@ -8,7 +8,7 @@
     "dev": "node server.js",
     "import:cet4": "node scripts/import_cet4_full.js",
     "import:cet6": "node scripts/import_cet6_full.js",
-    "test": "echo \"No tests configured\""
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",
@@ -17,6 +17,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.6.2",
+    "better-sqlite3-session-store": "^0.1.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.1",

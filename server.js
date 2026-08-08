@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const session = require("express-session");
+var SqliteStore = require("better-sqlite3-session-store")(session);
 const bcrypt = require("bcryptjs");
 const morgan = require("morgan");
 const rateLimit = require("express-rate-limit");
@@ -47,6 +48,14 @@ seedAdmin();
 
 const dailySystem = makeDailySystem(db);
 
+var sessionStore = new SqliteStore({
+  client: db,
+  expired: {
+    clear: true,
+    intervalMs: 15 * 60 * 1000
+  }
+});
+
 const app = express();
 if (TRUST_PROXY) {
   app.set("trust proxy", 1);
@@ -64,6 +73,7 @@ app.use(express.json());
 app.use(morgan(IS_PRODUCTION ? "combined" : "dev"));
 app.use(
   session({
+    store: sessionStore,
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
