@@ -130,6 +130,7 @@ docker build -t cet-word-master:1.0.0 .
 docker run -d -p 3000:3000 \
   -e SESSION_SECRET=your-long-random-secret \
   -e ADMIN_PASSWORD=your-strong-password \
+  -e COOKIE_SECURE=0 \
   -v cet-word-data:/app/data \
   cet-word-master:1.0.0
 ```
@@ -156,6 +157,7 @@ docker compose up -d
 | `PORT` | 服务端口 | 3000 |
 | `NODE_ENV` | 运行环境 | development |
 | `TRUST_PROXY` | 信任代理 | 0 |
+| `COOKIE_SECURE` | Session cookie 是否仅通过 HTTPS 发送；http 直连部署（无 TLS）必须设为 0，否则浏览器拒绝保存 cookie、登录后全部 401 | 跟随 NODE_ENV（生产为 1） |
 | `SESSION_SECRET` | Session 密钥 | cet-secret-change-this |
 | `ADMIN_PASSWORD` | 管理员密码 | admin123456 |
 | `DATA_DIR` | 数据目录 | ./data |

@@ -298,7 +298,7 @@ function renderRecords() {
       <tr>
         <td>${escapeHtml(row.level === "CET4" ? "四级" : "六级")}</td>
         <td>${escapeHtml(row.word)}</td>
-        <td>${row.phonetic || "-"}</td>
+        <td>${escapeHtml(row.phonetic || "-")}</td>
         <td>${escapeHtml(row.meaning)}</td>
         <td>${row.count}</td>
         <td>${formatDateTime(row.lastReviewedAt)}</td>
@@ -334,7 +334,7 @@ function renderDictationRecords() {
       <tr>
         <td>${escapeHtml(row.level === "CET4" ? "四级" : "六级")}</td>
         <td>${escapeHtml(row.word)}</td>
-        <td>${row.phonetic || "-"}</td>
+        <td>${escapeHtml(row.phonetic || "-")}</td>
         <td>${escapeHtml(row.meaning)}</td>
         <td>${row.dictationSuccessCount || 0}</td>
         <td>${formatDateTime(row.lastDictationSuccessAt)}</td>

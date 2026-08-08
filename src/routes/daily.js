@@ -45,6 +45,18 @@ function createDailyRoutes(db, dailySystem, { requireAuth, isValidLevel }) {
 
     var today = getTodayDate();
 
+    var word = db.prepare("SELECT id FROM words WHERE id = ?").get(wordId);
+    if (!word) {
+      return res.status(404).json({ message: "单词不存在" });
+    }
+
+    var inTodayTask = db.prepare(
+      "SELECT 1 FROM user_daily_progress WHERE user_id = ? AND date = ? AND level = ? AND word_id = ?"
+    ).get(req.currentUser.id, today, level, wordId);
+    if (!inTodayTask) {
+      return res.status(400).json({ message: "该单词不在今日学习任务中" });
+    }
+
     db.prepare(
       "UPDATE user_daily_progress SET memorized = 1 " +
       "WHERE user_id = ? AND date = ? AND level = ? AND word_id = ?"
@@ -79,6 +91,18 @@ function createDailyRoutes(db, dailySystem, { requireAuth, isValidLevel }) {
 
     var today = getTodayDate();
     var column = mode === "en-cn" ? "dictation_en_cn" : "dictation_cn_en";
+
+    var word = db.prepare("SELECT id FROM words WHERE id = ?").get(wordId);
+    if (!word) {
+      return res.status(404).json({ message: "单词不存在" });
+    }
+
+    var inTodayTask = db.prepare(
+      "SELECT 1 FROM user_daily_progress WHERE user_id = ? AND date = ? AND level = ? AND word_id = ?"
+    ).get(req.currentUser.id, today, level, wordId);
+    if (!inTodayTask) {
+      return res.status(400).json({ message: "该单词不在今日学习任务中" });
+    }
 
     db.prepare(
       "UPDATE user_daily_progress SET " + column + " = 1 " +

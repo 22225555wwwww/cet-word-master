@@ -14,7 +14,8 @@ RUN npm ci --omit=dev
 FROM node:20-bookworm-slim
 ENV NODE_ENV=production \
     PORT=3000 \
-    DATA_DIR=/app/data
+    DATA_DIR=/app/data \
+    WORDS_DIR=/app/wordlists
 
 WORKDIR /app
 
@@ -22,6 +23,9 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json server.js ./
 COPY src ./src
 COPY public ./public
+# 词表导入脚本与词表文件（放 /app/wordlists 而非 /app/data，避免被数据卷挂载遮蔽）
+COPY scripts ./scripts
+COPY data/CET4_full.txt data/CET6_full.txt ./wordlists/
 
 # 非 root 运行；数据目录挂卷，属主改为 node 用户
 RUN mkdir -p /app/data && chown -R node:node /app

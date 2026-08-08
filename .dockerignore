@@ -1,5 +1,7 @@
 node_modules
 data
+!data/CET4_full.txt
+!data/CET6_full.txt
 *.db
 .env
 .git

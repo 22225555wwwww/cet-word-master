@@ -7,7 +7,10 @@ const dataDir = process.env.DATA_DIR
   ? path.resolve(process.env.DATA_DIR)
   : path.join(projectRoot, "data");
 const dbPath = path.join(dataDir, "app.db");
-const sourcePath = path.resolve(process.argv[2] || path.join(projectRoot, "data", "CET6_full.txt"));
+const wordsDir = process.env.WORDS_DIR
+  ? path.resolve(process.env.WORDS_DIR)
+  : path.join(projectRoot, "data");
+const sourcePath = path.resolve(process.argv[2] || path.join(wordsDir, "CET6_full.txt"));
 const coreSize = Number(process.argv[3] || 1726);
 
 fs.mkdirSync(dataDir, { recursive: true });

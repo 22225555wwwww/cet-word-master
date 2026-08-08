@@ -146,7 +146,7 @@ function renderWeakWords() {
       <tr>
         <td>${w.level === "CET4" ? "四级" : "六级"}</td>
         <td>${escapeHtml(w.word)}</td>
-        <td>${w.phonetic || "-"}</td>
+        <td>${escapeHtml(w.phonetic || "-")}</td>
         <td>${escapeHtml(w.meaning)}</td>
         <td>${w.count}</td>
       </tr>

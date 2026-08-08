@@ -206,7 +206,10 @@ function createAdminRoutes(db, { requireAdmin, isValidLevel }) {
     var level = String(req.body.level || "").trim();
     if (!isValidLevel(level)) return res.status(400).json({ message: "level 参数错误" });
 
-    var sourcePath = path.join(__dirname, "..", "..", "data", level + "_full.txt");
+    var wordsDir = process.env.WORDS_DIR
+      ? path.resolve(process.env.WORDS_DIR)
+      : path.join(__dirname, "..", "..", "data");
+    var sourcePath = path.join(wordsDir, level + "_full.txt");
     if (!fs.existsSync(sourcePath)) {
       return res.status(404).json({ message: "词表文件不存在: " + sourcePath });
     }

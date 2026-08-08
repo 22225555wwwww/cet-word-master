@@ -31,7 +31,7 @@ function renderCategories() {
   let html = `<button class="segment-btn ${allActive ? 'active' : ''}" data-category="all">全部</button>`;
   state.categories.forEach((cat) => {
     const active = state.currentCategory === cat.category;
-    html += `<button class="segment-btn ${active ? 'active' : ''}" data-category="${cat.category}">${cat.category} (${cat.count})</button>`;
+    html += `<button class="segment-btn ${active ? 'active' : ''}" data-category="${escapeHtml(cat.category)}">${escapeHtml(cat.category)} (${cat.count})</button>`;
   });
 
   els.categoryList.innerHTML = html;

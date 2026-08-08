@@ -108,6 +108,38 @@ describe('ensureDailyWords', () => {
     assert.strictEqual(ids.length, 5);
     assert.ok(ids.includes(words[0].id), '有记录但未记忆的词仍应作为新词分配');
   });
+
+  test('已记忆词（remember_count > 0）不再作为新词重复分配', () => {
+    const db = createTestDb();
+    const words = seedWords(db, { count: 20 });
+    const user = insertUser(db);
+    // 前 10 个词已记忆（remember_count = 1），last_reviewed_at 各不相同使复习词排序稳定
+    const memorized = words.slice(0, 10);
+    memorized.forEach((w, i) => {
+      seedReviewRecord(
+        db,
+        user.id,
+        w.id,
+        1,
+        `2026-01-${String(i + 1).padStart(2, '0')} 00:00:00`
+      );
+    });
+    makeDailySystem(db).ensureDailyWords(user.id, 'CET4');
+    const ids = progressRows(db, user.id, 'CET4').map((r) => r.word_id);
+    // 2 个复习词（记忆最早的）+ 10 个未记忆词；不得把已记忆词再当新词凑数
+    assert.strictEqual(ids.length, 12);
+    assert.strictEqual(new Set(ids).size, 12);
+    const memorizedIds = new Set(memorized.map((w) => w.id));
+    const reviewIds = ids.filter((id) => memorizedIds.has(id));
+    assert.strictEqual(reviewIds.length, 2, '已记忆词最多以复习词身份出现 2 个');
+    assert.ok(reviewIds.includes(memorized[0].id), '最早的记忆记录应进入复习');
+    assert.ok(reviewIds.includes(memorized[1].id), '次早的记忆记录应进入复习');
+    const restMemorized = memorized.slice(2).map((w) => w.id);
+    assert.ok(
+      restMemorized.every((id) => !ids.includes(id)),
+      '其余已记忆词不应被重复分配'
+    );
+  });
 });
 
 describe('updateCheckin', () => {

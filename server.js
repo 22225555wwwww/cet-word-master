@@ -17,6 +17,8 @@ const PORT = Number(process.env.PORT || 3000);
 const NODE_ENV = String(process.env.NODE_ENV || "development");
 const IS_PRODUCTION = NODE_ENV === "production";
 const TRUST_PROXY = String(process.env.TRUST_PROXY || (IS_PRODUCTION ? "1" : "0")) === "1";
+// session cookie 是否仅通过 HTTPS 发送；默认跟随环境，http 直连部署（无 TLS）必须显式设为 0，否则浏览器拒绝保存 cookie 导致登录后全部 401
+const COOKIE_SECURE = String(process.env.COOKIE_SECURE || (IS_PRODUCTION ? "1" : "0")) === "1";
 const SESSION_SECRET = process.env.SESSION_SECRET;
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
@@ -80,7 +82,7 @@ app.use(
     cookie: {
       httpOnly: true,
       sameSite: "lax",
-      secure: IS_PRODUCTION,
+      secure: COOKIE_SECURE,
       maxAge: 1000 * 60 * 60 * 24 * 7
     }
   })

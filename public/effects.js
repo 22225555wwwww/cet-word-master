@@ -29,24 +29,28 @@
     setTimeout(() => dot.remove(), 600);
   });
 
-  // Context-aware trail colors
-  function bindCursorEffects() {
-    document.querySelectorAll('a, select, summary, .link-btn').forEach((el) => {
-      el.addEventListener('mouseenter', () => { currentTrailClass = 'on-interactive'; });
-      el.addEventListener('mouseleave', () => { if (currentTrailClass === 'on-interactive') currentTrailClass = ''; });
-    });
-
-    document.querySelectorAll('button:not(.danger)').forEach((el) => {
-      el.addEventListener('mouseenter', () => { currentTrailClass = 'on-button'; });
-      el.addEventListener('mouseleave', () => { if (currentTrailClass === 'on-button') currentTrailClass = ''; });
-    });
-
-    document.querySelectorAll('button.danger').forEach((el) => {
-      el.addEventListener('mouseenter', () => { currentTrailClass = 'on-danger'; });
-      el.addEventListener('mouseleave', () => { if (currentTrailClass === 'on-danger') currentTrailClass = ''; });
-    });
+  // Context-aware trail colors — event delegation, bound ONCE at init.
+  // (The previous version re-ran querySelectorAll + addEventListener on every
+  // MutationObserver tick, stacking duplicate mouseenter/mouseleave handlers
+  // on every a/button — and the 30ms comet-dot churn fed the observer,
+  // causing a listener avalanche. Delegation covers dynamically added nodes
+  // with a single pair of document-level listeners.)
+  function trailClassOf(el) {
+    if (!el || el.nodeType !== 1) return '';
+    if (el.closest('button.danger')) return 'on-danger';
+    if (el.closest('button')) return 'on-button';
+    if (el.closest('a, select, summary, .link-btn')) return 'on-interactive';
+    return '';
   }
-  bindCursorEffects();
+
+  document.addEventListener('mouseover', (e) => {
+    const cls = trailClassOf(e.target);
+    if (cls) currentTrailClass = cls;
+  });
+
+  document.addEventListener('mouseout', (e) => {
+    if (!trailClassOf(e.relatedTarget)) currentTrailClass = '';
+  });
 
   // ===== Ripple Effect on Buttons =====
   document.addEventListener('click', (e) => {
@@ -123,7 +127,9 @@
       const dx = this.x - mouseX;
       const dy = this.y - mouseY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < 120) {
+      // Guard against dist === 0 (mouse exactly on the particle):
+      // dx / dist would be NaN and permanently corrupt the particle.
+      if (dist > 0 && dist < 120) {
         const force = (120 - dist) / 120;
         this.x += (dx / dist) * force * 2;
         this.y += (dy / dist) * force * 2;
@@ -181,20 +187,19 @@
   });
 
   // ===== Re-bind after DOM changes =====
-  const mutObserver = new MutationObserver(() => {
-    bindCursorEffects();
-  });
-  mutObserver.observe(document.body, { childList: true, subtree: true });
+  // No MutationObserver needed: the trail-color handlers above use event
+  // delegation, so dynamically added a/button nodes are covered without any
+  // re-binding. (A naive observer that re-ran a full re-bind caused listener
+  // accumulation — and the 30ms comet-dot churn made it avalanche.)
 
-  // ===== Keyboard shortcut: press 'r' to refresh with animation =====
+  // ===== Keyboard shortcut: Esc clears the comet trail =====
+  // (Original code referenced `dot`/`ring` which do not exist in this scope —
+  // `dot` was local to the mousemove callback and `ring` never existed,
+  // so pressing Esc threw a ReferenceError. Replaced with a real operation
+  // on the actual trail nodes.)
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      dot.style.transform = 'translate(-50%, -50%) scale(2)';
-      ring.style.transform = 'translate(-50%, -50%) scale(1.5)';
-      setTimeout(() => {
-        dot.style.transform = 'translate(-50%, -50%) scale(1)';
-        ring.style.transform = 'translate(-50%, -50%) scale(1)';
-      }, 200);
+      document.querySelectorAll('.comet-dot').forEach((dot) => dot.remove());
     }
   });
 

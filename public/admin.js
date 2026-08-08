@@ -117,7 +117,7 @@ function renderWords() {
         <td>${word.id}</td>
         <td>${word.level}</td>
         <td>${escapeHtml(word.word)}</td>
-        <td>${word.phonetic || "-"}</td>
+        <td>${escapeHtml(word.phonetic || "-")}</td>
         <td>${escapeHtml(word.meaning)}</td>
         <td>${formatDateTime(word.createdAt)}</td>
         <td>
@@ -282,7 +282,7 @@ function renderGrammarPoints() {
 
   let html = "";
   grouped.forEach((points, category) => {
-    html += `<div style="margin-top:16px;"><p class="mode-label">${category}</p>`;
+    html += `<div style="margin-top:16px;"><p class="mode-label">${escapeHtml(category)}</p>`;
     points.forEach((point) => {
       const examples = state.grammarExamples.get(point.id) || [];
       html += `

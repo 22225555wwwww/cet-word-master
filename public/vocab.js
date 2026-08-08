@@ -8,6 +8,7 @@ const state = {
   words: [],
   recordMap: new Map(),
   loading: false,
+  reqSeq: 0,
   searchQ: "",
   isSearching: false,
   searchDebounceTimer: null
@@ -58,7 +59,7 @@ function renderPager() {
 function renderStats() {
   if (state.isSearching && state.searchQ) {
     const levelText = state.level === "CET4" ? "四级" : "六级";
-    els.vocabStats.textContent = `搜索"${escapeHtml(state.searchQ)}" — ${levelText}词汇找到 ${state.total} 个结果`;
+    els.vocabStats.textContent = `搜索"${state.searchQ}" — ${levelText}词汇找到 ${state.total} 个结果`;
     return;
   }
 
@@ -82,7 +83,7 @@ function renderTable() {
       <tr>
         <td>${word.level === "CET4" ? "四级" : "六级"}</td>
         <td>${escapeHtml(word.word)}</td>
-        <td>${word.phonetic || "-"}</td>
+        <td>${escapeHtml(word.phonetic || "-")}</td>
         <td>${escapeHtml(word.meaning)}</td>
         <td>${record?.count || 0}</td>
         <td>${record?.dictationSuccessCount || 0}</td>
@@ -118,6 +119,7 @@ async function loadRecords() {
 }
 
 async function loadWordsPaged() {
+  const seq = ++state.reqSeq;
   state.loading = true;
   renderPager();
 
@@ -129,6 +131,7 @@ async function loadWordsPaged() {
     });
 
     const data = await api(`/api/words/paged?${params.toString()}`);
+    if (seq !== state.reqSeq) return;
     state.words = data.words || [];
     state.page = data.page || 1;
     state.pageSize = data.pageSize || state.pageSize;
@@ -136,6 +139,7 @@ async function loadWordsPaged() {
     state.totalPages = data.totalPages || 1;
     els.pageSizeSelect.value = String(state.pageSize);
   } finally {
+    if (seq !== state.reqSeq) return;
     state.loading = false;
     renderAll();
   }
@@ -144,6 +148,7 @@ async function loadWordsPaged() {
 async function loadSearchResults() {
   if (!state.searchQ) return;
 
+  const seq = ++state.reqSeq;
   state.loading = true;
   renderPager();
 
@@ -156,12 +161,14 @@ async function loadSearchResults() {
     });
 
     const data = await api(`/api/words/search?${params.toString()}`);
+    if (seq !== state.reqSeq) return;
     state.words = data.words || [];
     state.page = data.page || 1;
     state.pageSize = data.pageSize || state.pageSize;
     state.total = data.total || 0;
     state.totalPages = data.totalPages || 1;
   } finally {
+    if (seq !== state.reqSeq) return;
     state.loading = false;
     renderAll();
   }

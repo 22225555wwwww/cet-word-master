@@ -33,6 +33,10 @@ spec:
               value: "production"
             - name: TRUST_PROXY
               value: "1"
+            # 当前 Ingress 未启用 TLS，cookie 必须允许非 https 发送，否则登录后全部 401；
+            # 启用 HTTPS 出口后请改为 "1"
+            - name: COOKIE_SECURE
+              value: "0"
             - name: DATA_DIR
               value: /app/data
             - name: SESSION_SECRET

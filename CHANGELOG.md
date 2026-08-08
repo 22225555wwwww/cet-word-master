@@ -1,5 +1,21 @@
 # 更新日志
 
+## 2026-08-09
+
+### 高危修复
+
+- **部署登录不可用修复**：`NODE_ENV=production` 下 session cookie 默认 `secure: true`，而 Docker Compose / K8s 部署无 HTTPS 出口，导致浏览器拒绝保存 cookie、登录后全部 401。新增 `COOKIE_SECURE` 环境变量开关（默认跟随 NODE_ENV，可显式覆盖），Compose / K8s / README docker run 部署路径均显式配置
+- **Dockerfile 补全词表与导入脚本**：镜像原先未包含 `data/*.txt` 与 `scripts/`，容器内导入词库必然失败。词表 COPY 至 `/app/wordlists/`（避开数据卷挂载遮蔽），新增 `WORDS_DIR` 环境变量统一词表路径（本地默认 `./data`）
+- **每日任务重复分配修复**：新词查询排除已记忆词（`remember_count > 0`），已记忆词只通过复习通道进入每日任务；新增对应测试用例（49 个用例全绿）
+- **`/memorize` `/dictation` 防刷与 500 修复**：新增两道校验——单词不存在返回 404；不在当日任务列表返回 400，杜绝任意 wordId 刷记住次数污染统计
+- **存储型 XSS 修复（6 处）**：语法分类名、后台语法点分类、5 处单词音标字段 innerHTML 插入未转义，统一改为 `escapeHtml`；语法页分类按钮的 `data-category` 属性同步转义
+- **词库页搜索/翻页请求竞态修复**：`loadWordsPaged` / `loadSearchResults` 增加请求序号（`reqSeq`），旧请求晚返回时丢弃，不再覆盖新状态
+- **effects.js 三处隐患修复**：Esc 按键处理器引用未定义变量导致的 ReferenceError；MutationObserver 全量重绑导致的监听器无限累积（改为 document 级事件委托）；粒子斥力计算 dist=0 产生的 NaN
+
+### 其他
+
+- 词库页搜索词显示修复（textContent 双重转义显示 `&amp;` 的问题）
+
 ## 2026-08-08
 
 ### 新功能

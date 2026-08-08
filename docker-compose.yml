@@ -6,6 +6,8 @@ services:
     environment:
       NODE_ENV: production
       TRUST_PROXY: "0"
+      # http 直连（无 TLS），cookie 必须允许非 https 发送，否则登录后全部 401
+      COOKIE_SECURE: "0"
       SESSION_SECRET: ${SESSION_SECRET:?请在 .env 中设置 SESSION_SECRET}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?请在 .env 中设置 ADMIN_PASSWORD}
       DATA_DIR: /app/data

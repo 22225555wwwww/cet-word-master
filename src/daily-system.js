@@ -42,6 +42,7 @@ function ensureDailyWords(db, userId, level) {
         "SELECT w.id FROM words w " +
         "LEFT JOIN user_word_records r ON r.word_id = w.id AND r.user_id = ? " +
         "WHERE w.level = ? AND w.is_high_freq = 1 AND w.id NOT IN (" + ph + ") " +
+        "AND COALESCE(r.remember_count, 0) = 0 " +
         "ORDER BY COALESCE(r.remember_count, 0) ASC, RANDOM() " +
         "LIMIT ?"
       )
@@ -53,6 +54,7 @@ function ensureDailyWords(db, userId, level) {
         "SELECT w.id FROM words w " +
         "LEFT JOIN user_word_records r ON r.word_id = w.id AND r.user_id = ? " +
         "WHERE w.level = ? AND w.is_high_freq = 1 " +
+        "AND COALESCE(r.remember_count, 0) = 0 " +
         "ORDER BY COALESCE(r.remember_count, 0) ASC, RANDOM() " +
         "LIMIT 20"
       )
