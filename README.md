@@ -52,9 +52,6 @@ npm start
 ```
 cet-word-master/
 ├── server.js              # Express 服务端（API + 数据库初始化）
-├── index.html             # 主页面（背词界面）
-├── script.js              # 前端交互逻辑
-├── styles.css             # 样式文件
 ├── package.json           # 项目配置
 ├── .env.example           # 环境变量示例
 ├── .gitignore             # Git 忽略规则
@@ -63,13 +60,21 @@ cet-word-master/
 │   ├── CET4_full.txt      # CET-4 完整词库
 │   └── CET6_full.txt      # CET-6 完整词库
 ├── public/                # 前端静态资源
-│   ├── index.html         # 用户端页面
-│   ├── app.js             # 用户端逻辑
+│   ├── index.html         # 主页面（背词界面）
+│   ├── app.js             # 主页面逻辑
 │   ├── vocab.html         # 词汇学习页面
 │   ├── vocab.js           # 词汇学习逻辑
+│   ├── grammar.html       # 语法教学页面
+│   ├── grammar.js         # 语法教学逻辑
+│   ├── personal.html      # 个人数据页面
+│   ├── personal.js        # 个人数据逻辑
 │   ├── admin.html         # 管理员后台页面
 │   ├── admin.js           # 管理员后台逻辑
-│   └── styles.css         # 前端样式
+│   ├── shared.js          # 公共逻辑
+│   ├── effects.js         # 页面特效逻辑
+│   ├── styles.css         # 前端样式
+│   ├── decorations.css    # 装饰样式
+│   └── effects.css        # 特效样式
 ├── scripts/               # 数据导入脚本
 │   ├── import_cet4_full.js
 │   └── import_cet6_full.js
