@@ -234,6 +234,15 @@ function createAdminRoutes(db, { requireAdmin, isValidLevel }) {
 
       if (!words.length) return res.status(400).json({ message: "未解析到有效单词" });
 
+      // 词表文件按字母序排列：直接取前 N 个会让高频词被 A-D 字母段垄断。
+      // 先 Fisher-Yates 洗牌再取前 coreSize 个，保证高频词在各字母段均匀分布。
+      for (var s = words.length - 1; s > 0; s--) {
+        var rand = Math.floor(Math.random() * (s + 1));
+        var swap = words[s];
+        words[s] = words[rand];
+        words[rand] = swap;
+      }
+
       var coreSize = Math.min(2000, words.length);
 
       var upsert = db.prepare(

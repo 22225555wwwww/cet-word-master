@@ -728,7 +728,10 @@
           <section class="panel" aria-label="每日背词" id="daily-panel">
             <div class="section-title-row">
               <h2>每日背词</h2>
-              <p id="daily-streak" class="muted"></p>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:flex-end;">
+                <p id="daily-streak" class="muted"></p>
+                <button id="daily-checkin-btn" class="secondary" type="button">每日签到</button>
+              </div>
             </div>
             <div id="daily-loading" class="hint">加载今日任务...</div>
             <div id="daily-content" class="hidden">

@@ -106,6 +106,7 @@ const els = {
   dailyLoading: document.getElementById("daily-loading"),
   dailyContent: document.getElementById("daily-content"),
   dailyStreak: document.getElementById("daily-streak"),
+  dailyCheckinBtn: document.getElementById("daily-checkin-btn"),
   dailyProgressBar: document.getElementById("daily-progress-bar"),
   dailyProgressText: document.getElementById("daily-progress-text"),
   dailyWordGrid: document.getElementById("daily-word-grid"),
@@ -520,16 +521,23 @@ async function switchLevel(level) {
     appPanel.style.transition = "opacity 0.2s ease, transform 0.2s ease";
   }
 
+  const requestedLevel = level;
   state.level = level;
   state.index = 0;
   if (!state.words[level].length) {
     await loadWords(level);
+    // 竞态保护：await 期间用户可能又切换了等级，迟到数据直接丢弃，
+    // 避免 resetQuizForCurrentLevel 等副作用作用在错误的等级上
+    if (state.level !== requestedLevel) return;
   }
   resetQuizForCurrentLevel();
 
   // Reload daily words for this level
   state.daily.summaryShown = false;
   const today = await loadDaily(level);
+  // 竞态保护：await 期间用户可能又切换了等级，迟到的旧等级响应直接丢弃，
+  // 避免旧数据覆盖 state.daily 或渲染出与当前等级不符的每日面板。
+  if (state.level !== requestedLevel) return;
   if (today) {
     state.daily.loaded = true;
     renderDailyPanel(today, null);
@@ -758,11 +766,21 @@ function checkDictationAnswer(word, answer, mode) {
   }
 
   if (mode === "cn-en") {
-    var ok = normalizeEnglish(trimmed) === normalizeEnglish(word.word);
+    var enNorm = normalizeEnglish(trimmed);
+    // 纯标点/符号输入归一化后为空串，直接判错
+    if (!enNorm) {
+      return { correct: false, reason: "请输入有效答案" };
+    }
+    var ok = enNorm === normalizeEnglish(word.word);
     return { correct: ok, expected: word.word };
   }
 
   var inputNorm = normalizeChinese(trimmed);
+  // 纯标点输入（如 "。。。"）归一化后为空串，空串会让 token.includes("")
+  // 与 includes("") 恒为 true 而误判正确，这里直接拦截
+  if (!inputNorm) {
+    return { correct: false, reason: "请输入有效答案" };
+  }
   var fullMeaningNorm = normalizeChinese(word.meaning);
   var tokenNorms = splitMeaningTokens(word.meaning).map(function(item) { return normalizeChinese(item); });
 
@@ -1167,11 +1185,15 @@ async function submitDailyDictationAnswer() {
 }
 
 function advanceDailyDictationOrCheck(today) {
-  const { dictationQueue, dictationIndex, dictationMode } = state.daily;
+  const { dictationMode } = state.daily;
   const field = dictationMode === "cn-en" ? "dictationCnEn" : "dictationEnCn";
-  const remaining = dictationQueue.filter((w, i) => i > dictationIndex && !w[field]);
 
-  if (remaining.length === 0) {
+  // 完成判定基于服务端进度计数，而不是本地队列剩余位置：
+  // 用户用「换一题」跳过题目后，本地队列索引可能提前耗尽，
+  // 但服务端计数未变，不能据此切换模式或判定完成。
+  const currentModeDone = today.total > 0 && today[field] >= today.total;
+
+  if (currentModeDone) {
     // Check if both dictation modes are complete
     if (today.dictationEnCn >= today.total && today.dictationCnEn >= today.total) {
       showDailySummary(today);
@@ -1182,21 +1204,23 @@ function advanceDailyDictationOrCheck(today) {
       renderDailyDictationModeButtons();
       buildDailyDictationQueue();
       state.daily.dictationAnswerRevealed = false;
-      state.daily.feedbackText = "英译中完成！现在切换到英译中。";
+      state.daily.feedbackText = `${dictationMode === "cn-en" ? "中译英" : "英译中"}完成！现在切换到${otherMode === "cn-en" ? "中译英" : "英译中"}。`;
       state.daily.feedbackType = "info";
       els.dailyDictInput.value = "";
       renderDailyDictationCard();
     }
-  } else {
-    // Move to next in queue
-    state.daily.dictationIndex = dictationIndex + 1;
-    state.daily.dictationAnswerRevealed = false;
-    state.daily.feedbackText = "";
-    state.daily.feedbackType = "info";
-    els.dailyDictInput.value = "";
-    renderDailyDictationCard();
-    els.dailyDictInput.focus();
+    return;
   }
+
+  // 当前模式尚未全部完成：用服务端最新进度重建队列，继续未默写的词
+  state.daily.words = today.words;
+  buildDailyDictationQueue();
+  state.daily.dictationAnswerRevealed = false;
+  state.daily.feedbackText = "";
+  state.daily.feedbackType = "info";
+  els.dailyDictInput.value = "";
+  renderDailyDictationCard();
+  els.dailyDictInput.focus();
 }
 
 function nextDailyDictationQuestion() {
@@ -1252,8 +1276,49 @@ async function dailyCheckin(level) {
     return data.today;
   } catch (error) {
     els.dailyLoading.textContent = `签到失败：${error.message}`;
+    els.dailyLoading.classList.remove("hidden");
     return null;
   }
+}
+
+async function handleDailyCheckinClick() {
+  const today = await dailyCheckin(state.daily.level || state.level);
+  if (!today) return;
+
+  state.daily.words = today.words;
+  state.daily.level = today.level;
+  renderDailyProgress(today);
+  renderDailyWordGrid();
+  renderDailyDictationModeButtons();
+
+  // 同步面板显隐与阶段：跨天签到后今日面板可能是 memorize/dictation/summary
+  // 任一阶段，且若此前 loadDaily 失败过 dailyContent 仍是 hidden，必须显式恢复
+  els.dailyContent.classList.remove("hidden");
+  if (today.phase === "dictation") {
+    showDailyPhase("dictation");
+    buildDailyDictationQueue();
+    renderDailyDictationCard();
+  } else if (today.phase === "summary") {
+    showDailyPhase("summary");
+  } else {
+    showDailyPhase("memorize");
+  }
+
+  try {
+    const streakRes = await api("/api/stats");
+    if (streakRes.streak) {
+      els.dailyStreak.textContent = `连续 ${streakRes.streak.consecutiveDays} 天 | 累计 ${streakRes.streak.totalDays} 天`;
+      els.dailyLoading.textContent = `签到成功！已连续签到 ${streakRes.streak.consecutiveDays} 天。`;
+    } else {
+      els.dailyLoading.textContent = "签到成功！";
+    }
+  } catch (_error) {
+    els.dailyLoading.textContent = "签到成功！";
+  }
+  els.dailyLoading.classList.remove("hidden");
+  setTimeout(() => {
+    els.dailyLoading.classList.add("hidden");
+  }, 4000);
 }
 
 function bindEvents() {
@@ -1320,6 +1385,10 @@ function bindEvents() {
     if (event.key !== "Enter") return;
     event.preventDefault();
     submitDailyDictationAnswer().catch((error) => alert(error.message));
+  });
+
+  els.dailyCheckinBtn.addEventListener("click", () => {
+    handleDailyCheckinClick().catch((error) => alert(error.message));
   });
 
   els.dailySummaryContinue.addEventListener("click", () => {

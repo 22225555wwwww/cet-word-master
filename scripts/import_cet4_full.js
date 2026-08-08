@@ -47,6 +47,15 @@ if (!words.length) {
   process.exit(1);
 }
 
+// 词表文件按字母序排列：直接取前 N 个会让高频词被 A-D 字母段垄断。
+// 先 Fisher-Yates 洗牌再取前 coreSize 个，保证高频词在各字母段均匀分布。
+for (let s = words.length - 1; s > 0; s -= 1) {
+  const rand = Math.floor(Math.random() * (s + 1));
+  const swap = words[s];
+  words[s] = words[rand];
+  words[rand] = swap;
+}
+
 const upsert = db.prepare(
   `INSERT INTO words (level, word, phonetic, meaning, is_high_freq)
    VALUES ('CET4', ?, ?, ?, ?)

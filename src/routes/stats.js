@@ -1,5 +1,5 @@
 var { Router } = require("express");
-var { getTodayDate } = require("../daily-system");
+var { getTodayDate, formatDateInAppTimeZone } = require("../daily-system");
 
 function createStatsRoutes(db, dailySystem, { requireAuth }) {
   var router = Router();
@@ -26,9 +26,18 @@ function createStatsRoutes(db, dailySystem, { requireAuth }) {
       "WHERE r.user_id = ? AND r.remember_count > 0"
     ).get(userId);
 
-    var totalWordsInDb = db.prepare("SELECT COUNT(*) AS count FROM words").get().count;
-    var retentionRate = totalWordsInDb > 0
-      ? Math.round((wordStats.totalWords / totalWordsInDb) * 100) / 100
+    // 保留率分母 = 用户实际有学习记录的级别各自的词库词数之和：
+    // 只学 CET4 的用户分母就是 CET4 词库词数，不再被 CET6 稀释（原实现分母为全库词数，上限约 50%）。
+    // 用户无任何学习记录时分母为 0，直接返回 0，避免除零。
+    var retentionDenomRow = db.prepare(
+      "SELECT COALESCE(SUM(lc.count), 0) AS total " +
+      "FROM (SELECT DISTINCT w.level FROM user_word_records r JOIN words w ON w.id = r.word_id " +
+      "WHERE r.user_id = ? AND r.remember_count > 0) ul " +
+      "JOIN (SELECT level, COUNT(*) AS count FROM words GROUP BY level) lc ON lc.level = ul.level"
+    ).get(userId);
+    var retentionDenom = retentionDenomRow.total;
+    var retentionRate = retentionDenom > 0
+      ? Math.round((wordStats.totalWords / retentionDenom) * 100) / 100
       : 0;
 
     // Dictation stats — from daily_progress because it tracks en-cn vs cn-en separately
@@ -39,7 +48,12 @@ function createStatsRoutes(db, dailySystem, { requireAuth }) {
       "FROM user_daily_progress WHERE user_id = ?"
     ).get(userId);
 
-    var totalDictSuccess = dictStats.totalEnCn;
+    // 准确率口径：分子 = 默写成功次数，即 user_daily_progress 中 en-cn 与 cn-en 两种方向的
+    // 成功行之和（原先只取 totalEnCn，cn-en 默写成功被漏计）；分母 = user_word_records 的
+    // remember_count 累计（记忆动作次数）。两者都是用户真实完成动作的记录；
+    // daily 按「天×词」去重计行，remember_count 每次点击累加，属既有表结构差异，
+    // 此处至少保证两种默写方向的成功全部计入分子。
+    var totalDictSuccess = dictStats.totalEnCn + dictStats.totalCnEn;
     var totalRemembered = wordStats.totalRemembered;
     var accuracy = totalRemembered > 0
       ? Math.round((totalDictSuccess / totalRemembered) * 100) / 100
@@ -56,10 +70,9 @@ function createStatsRoutes(db, dailySystem, { requireAuth }) {
     for (var i = 6; i >= 0; i--) {
       var d = new Date();
       d.setDate(d.getDate() - i);
-      var yy = d.getFullYear();
-      var mm = String(d.getMonth() + 1).padStart(2, "0");
-      var dd = String(d.getDate()).padStart(2, "0");
-      var dateStr = yy + "-" + mm + "-" + dd;
+      // 与 getTodayDate 同一时区口径（业务时区 APP_TIMEZONE，默认 Asia/Shanghai），
+      // 否则北京时间凌晨窗口内 daily 进度与 weekly 统计会错位一天
+      var dateStr = formatDateInAppTimeZone(d);
 
       var dayRow = db.prepare(
         "SELECT " +

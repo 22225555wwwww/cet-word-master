@@ -126,9 +126,21 @@ describe('auth 路由 HTTP 集成', () => {
   function buildApp(db) {
     const app = express();
     app.use(express.json());
+    // 与 server.js 一致的兜底：Express 5 下无 Content-Type 时 req.body 为 undefined
+    app.use((req, _res, next) => {
+      req.body = req.body || {};
+      next();
+    });
     app.use(makeSessionStore());
     app.use(createAuthMiddleware(db));
     app.use('/api/auth', createAuthRoutes(db, { toSafeUser, authLimiter: noopLimiter }));
+    // 与 server.js 一致的错误处理：带 err.status 的错误按状态码返回（如 body-parser 非法 JSON → 400）
+    app.use((err, _req, res, _next) => {
+      const status = Number(err.status);
+      res.status(Number.isInteger(status) && status >= 400 && status <= 599 ? status : 500).json({
+        message: '服务器内部错误'
+      });
+    });
     return app;
   }
 
@@ -253,6 +265,31 @@ describe('auth 路由 HTTP 集成', () => {
         assert.strictEqual(r.status, 400, JSON.stringify(body));
         assert.strictEqual(r.body.message, '请输入用户名和密码');
       }
+    });
+  });
+
+  test('POST /api/auth/login 无 Content-Type 时返回 400 而非 500', async () => {
+    const db = createTestDb();
+    insertUser(db, { username: 'bob', password: 'secret123' });
+    await withServer(buildApp(db), async (base) => {
+      // fetch 不带 content-type header 发 POST：Express 5 下 req.body 为 undefined，
+      // 若无兜底中间件会抛 TypeError → 500；修复后应走参数校验 → 400
+      const res = await fetch(base + '/api/auth/login', { method: 'POST' });
+      assert.strictEqual(res.status, 400);
+      assert.deepStrictEqual(await res.json(), { message: '请输入用户名和密码' });
+    });
+  });
+
+  test('POST /api/auth/login 非法 JSON 返回 400 而非 500', async () => {
+    const db = createTestDb();
+    await withServer(buildApp(db), async (base) => {
+      const res = await fetch(base + '/api/auth/login', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{bad json'
+      });
+      // body-parser 抛出的错误带 err.status=400，错误处理中间件应按 400 返回
+      assert.strictEqual(res.status, 400);
     });
   });
 

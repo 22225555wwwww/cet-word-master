@@ -2,12 +2,41 @@
 // All functions receive db as a parameter (no closure over global db).
 // Use makeDailySystem(db) to create the bound interface.
 
+// 按业务时区（默认 Asia/Shanghai，可用 APP_TIMEZONE 覆盖）把 Date 格式化为 YYYY-MM-DD。
+// 服务器本地时区可能是 UTC（Docker 默认），直接用本地时间会导致北京时间凌晨 0-8 点被记到前一天而断签。
+// 用 Intl.DateTimeFormat.formatToParts 拼日期：各 Node 版本行为一致，避免 toLocaleDateString('en-CA') 的差异。
+// APP_TIMEZONE 传非法值时 Intl 会抛 RangeError，这里 try/catch 回退默认时区，避免全线 500。
+function formatDateInAppTimeZone(date) {
+  var timeZone = process.env.APP_TIMEZONE || "Asia/Shanghai";
+  try {
+    var parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(date);
+    var values = {};
+    parts.forEach(function(part) {
+      values[part.type] = part.value;
+    });
+    return values.year + "-" + values.month + "-" + values.day;
+  } catch (_err) {
+    var fallbackParts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit"
+    }).formatToParts(date);
+    var fb = {};
+    fallbackParts.forEach(function(part) {
+      fb[part.type] = part.value;
+    });
+    return fb.year + "-" + fb.month + "-" + fb.day;
+  }
+}
+
 function getTodayDate() {
-  var d = new Date();
-  var yy = d.getFullYear();
-  var mm = String(d.getMonth() + 1).padStart(2, "0");
-  var dd = String(d.getDate()).padStart(2, "0");
-  return yy + "-" + mm + "-" + dd;
+  return formatDateInAppTimeZone(new Date());
 }
 
 function ensureDailyWords(db, userId, level) {
@@ -155,4 +184,4 @@ function makeDailySystem(db) {
   };
 }
 
-module.exports = { getTodayDate, makeDailySystem };
+module.exports = { getTodayDate, formatDateInAppTimeZone, makeDailySystem };

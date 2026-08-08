@@ -65,18 +65,20 @@ function createWordRoutes(db, { requireAuth, isValidLevel }) {
       : 50;
     var requestedPage = Number.isFinite(rawPage) ? Math.max(1, Math.floor(rawPage)) : 1;
 
-    var like = "%" + q + "%";
+    // 转义 LIKE 通配符（% _ \），否则 q 含这些字符时会被当成通配符（如 q="_" 匹配全部单词）
+    var escaped = q.replace(/[\\%_]/g, function(m) { return "\\" + m; });
+    var like = "%" + escaped + "%";
     var exactMatch = q;
-    var prefixMatch = q + "%";
+    var prefixMatch = escaped + "%";
 
     var total;
     if (level) {
       total = db.prepare(
-        "SELECT COUNT(*) AS count FROM words WHERE (word LIKE ? OR meaning LIKE ?) AND level = ?"
+        "SELECT COUNT(*) AS count FROM words WHERE (word LIKE ? ESCAPE '\\' OR meaning LIKE ? ESCAPE '\\') AND level = ?"
       ).get(like, like, level).count;
     } else {
       total = db.prepare(
-        "SELECT COUNT(*) AS count FROM words WHERE word LIKE ? OR meaning LIKE ?"
+        "SELECT COUNT(*) AS count FROM words WHERE word LIKE ? ESCAPE '\\' OR meaning LIKE ? ESCAPE '\\'"
       ).get(like, like).count;
     }
 
@@ -88,15 +90,15 @@ function createWordRoutes(db, { requireAuth, isValidLevel }) {
     if (level) {
       words = db.prepare(
         "SELECT id, level, word, phonetic, meaning, is_high_freq AS isHighFreq " +
-        "FROM words WHERE (word LIKE ? OR meaning LIKE ?) AND level = ? " +
-        "ORDER BY CASE WHEN word = ? THEN 0 WHEN word LIKE ? THEN 1 ELSE 2 END, id ASC " +
+        "FROM words WHERE (word LIKE ? ESCAPE '\\' OR meaning LIKE ? ESCAPE '\\') AND level = ? " +
+        "ORDER BY CASE WHEN word = ? THEN 0 WHEN word LIKE ? ESCAPE '\\' THEN 1 ELSE 2 END, id ASC " +
         "LIMIT ? OFFSET ?"
       ).all(like, like, level, exactMatch, prefixMatch, pageSize, offset);
     } else {
       words = db.prepare(
         "SELECT id, level, word, phonetic, meaning, is_high_freq AS isHighFreq " +
-        "FROM words WHERE (word LIKE ? OR meaning LIKE ?) " +
-        "ORDER BY CASE WHEN word = ? THEN 0 WHEN word LIKE ? THEN 1 ELSE 2 END, id ASC " +
+        "FROM words WHERE (word LIKE ? ESCAPE '\\' OR meaning LIKE ? ESCAPE '\\') " +
+        "ORDER BY CASE WHEN word = ? THEN 0 WHEN word LIKE ? ESCAPE '\\' THEN 1 ELSE 2 END, id ASC " +
         "LIMIT ? OFFSET ?"
       ).all(like, like, exactMatch, prefixMatch, pageSize, offset);
     }

@@ -174,13 +174,28 @@ async function postJSON(url, body) {
   return { status: res.status, body: await res.json() };
 }
 
-// 返回 n 天前的本地日期（YYYY-MM-DD），与 getTodayDate 同一时区口径
+// 按业务时区（与 src/daily-system.js getTodayDate 同一口径：APP_TIMEZONE || 'Asia/Shanghai'）
+// 将 Date 实例格式化为 YYYY-MM-DD
+function formatDateInAppTimeZone(d) {
+  const timeZone = process.env.APP_TIMEZONE || 'Asia/Shanghai';
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(d);
+  const map = {};
+  parts.forEach((p) => {
+    map[p.type] = p.value;
+  });
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+// 返回 n 天前的业务时区日期（YYYY-MM-DD），与 getTodayDate 同一时区口径，避免跨时区 flaky
 function dateDaysAgo(n) {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${mm}-${dd}`;
+  return formatDateInAppTimeZone(d);
 }
 
 module.exports = {
@@ -194,5 +209,6 @@ module.exports = {
   noopLimiter,
   withServer,
   postJSON,
-  dateDaysAgo
+  dateDaysAgo,
+  formatDateInAppTimeZone
 };

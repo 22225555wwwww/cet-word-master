@@ -3,15 +3,31 @@
 const { test, describe } = require('node:test');
 const assert = require('node:assert');
 const { getTodayDate, makeDailySystem } = require('../src/daily-system');
-const { createTestDb, seedWords, insertUser, dateDaysAgo } = require('./helpers');
+const { createTestDb, seedWords, insertUser, dateDaysAgo, formatDateInAppTimeZone } = require('./helpers');
 
 describe('getTodayDate', () => {
-  test('返回 YYYY-MM-DD 格式的本地日期', () => {
+  test('返回 YYYY-MM-DD 格式的业务时区日期', () => {
     const s = getTodayDate();
     assert.match(s, /^\d{4}-\d{2}-\d{2}$/);
-    const now = new Date();
-    const expect = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    assert.strictEqual(s, expect);
+    // 与业务时区（APP_TIMEZONE || Asia/Shanghai）口径一致，避免在非上海时区的 CI 上 flaky
+    assert.strictEqual(s, formatDateInAppTimeZone(new Date()));
+  });
+
+  test('支持 APP_TIMEZONE 环境变量覆盖时区', () => {
+    const prev = process.env.APP_TIMEZONE;
+    process.env.APP_TIMEZONE = 'UTC';
+    try {
+      const s = getTodayDate();
+      const now = new Date();
+      const expect = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}-${String(now.getUTCDate()).padStart(2, '0')}`;
+      assert.strictEqual(s, expect);
+    } finally {
+      if (prev === undefined) {
+        delete process.env.APP_TIMEZONE;
+      } else {
+        process.env.APP_TIMEZONE = prev;
+      }
+    }
   });
 });
 

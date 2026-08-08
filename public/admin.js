@@ -23,6 +23,8 @@ const els = {
   usersBody: document.getElementById("users-body"),
   filterLevel: document.getElementById("filter-level"),
   refreshWords: document.getElementById("refresh-words"),
+  importCet4: document.getElementById("import-cet4"),
+  importCet6: document.getElementById("import-cet6"),
   addWordForm: document.getElementById("add-word-form"),
   wordsMsg: document.getElementById("words-msg"),
   wordsBody: document.getElementById("words-body"),
@@ -236,6 +238,40 @@ async function handleWordDelete(wordId) {
   } catch (error) {
     showMessage(error.message, true);
   }
+}
+
+async function handleImportWords(level) {
+  const label = level === "CET4" ? "四级" : "六级";
+  const btn = level === "CET4" ? els.importCet4 : els.importCet6;
+  const originalText = btn.textContent;
+
+  const ok = window.confirm(
+    `将导入完整${label}词库（data/${level}_full.txt），并重置该等级所有单词的高频词标记。确定继续吗？`
+  );
+  if (!ok) return;
+
+  btn.disabled = true;
+  btn.textContent = "导入中...";
+
+  try {
+    const data = await api("/api/admin/import-words", {
+      method: "POST",
+      body: { level: level }
+    });
+    showMessage(
+      `${data.message}：解析 ${data.sourceLines} 词，${label}词库共 ${data.totalWords} 词，其中高频词 ${data.highFreqWords} 个`
+    );
+  } catch (error) {
+    showMessage(error.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+
+  // 无论导入是否成功都刷新列表与概览；列表刷新失败不覆盖导入结果提示
+  try {
+    await Promise.all([loadWords(), loadOverview()]);
+  } catch (_) {}
 }
 
 async function handleAddWord(event) {
@@ -456,6 +492,14 @@ function bindEvents() {
 
   els.refreshWords.addEventListener("click", () => {
     loadWords().catch((error) => alert(error.message));
+  });
+
+  els.importCet4.addEventListener("click", () => {
+    handleImportWords("CET4");
+  });
+
+  els.importCet6.addEventListener("click", () => {
+    handleImportWords("CET6");
   });
 
   els.filterLevel.addEventListener("change", () => {

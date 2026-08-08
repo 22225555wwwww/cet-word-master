@@ -72,6 +72,11 @@ const authLimiter = rateLimit({
 });
 
 app.use(express.json());
+// Express 5：无 Content-Type 的请求 req.body 为 undefined，兜底为空对象，避免路由读 req.body 抛 TypeError → 500
+app.use(function(req, _res, next) {
+  req.body = req.body || {};
+  next();
+});
 app.use(morgan(IS_PRODUCTION ? "combined" : "dev"));
 app.use(
   session({
@@ -117,7 +122,14 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use((err, _req, res, _next) => {
   console.error(err);
-  res.status(500).json({ message: "服务器内部错误" });
+  // body-parser 等中间件抛出的错误带 err.status（如非法 JSON → 400），按状态码返回，其余统一 500
+  var status = Number(err.status);
+  if (!Number.isInteger(status) || status < 400 || status > 599) {
+    status = 500;
+  }
+  // 请求体解析失败（非法 JSON 等）时给出与状态码匹配的提示，其余统一服务器内部错误
+  var message = err.type === "entity.parse.failed" ? "请求格式错误" : "服务器内部错误";
+  res.status(status).json({ message: message });
 });
 
 app.listen(PORT, () => {
