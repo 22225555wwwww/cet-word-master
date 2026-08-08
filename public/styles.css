@@ -337,6 +337,15 @@ body {
   color: var(--sheet);
 }
 
+/* 无滑块容器的 segment-btn（如语法页分类按钮，动态渲染且数量不定，
+   不适合滑块组件）：active 时直接给黑色背景，否则浅色文字在浅色
+   背景上不可见 */
+.mode-row .segment-btn.active {
+  background: var(--ink);
+  color: var(--sheet);
+  border-radius: 3px;
+}
+
 /* ===== Auth Form ===== */
 .auth-form {
   margin-top: 16px;

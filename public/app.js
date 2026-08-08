@@ -1,17 +1,5 @@
 // ===== Slider Animation Helper =====
-function moveSlider(segmentId, activeBtn) {
-  const segment = document.getElementById(segmentId);
-  if (!segment) return;
-  const slider = segment.querySelector('.slider');
-  if (!slider) return;
-  const btn = segment.querySelector(activeBtn);
-  if (!btn) return;
-  const segmentRect = segment.getBoundingClientRect();
-  const btnRect = btn.getBoundingClientRect();
-  const padding = parseFloat(getComputedStyle(segment).paddingLeft) || 4;
-  slider.style.width = btnRect.width + 'px';
-  slider.style.transform = `translateX(${btnRect.left - segmentRect.left - padding}px)`;
-}
+// moveSlider 已移至 shared.js 供所有页面共用
 
 const state = {
   user: null,
@@ -48,6 +36,19 @@ const state = {
     summaryShown: false
   }
 };
+
+// 所有 segment 滑块的目标按钮映射（按当前 state 动态解析）
+const SLIDER_TARGETS = [
+  { segment: "auth-segment", btn: function () { return state.authMode === "login" ? "#tab-login" : "#tab-register"; } },
+  { segment: "nav-segment", btn: function () { return state.currentTab === "daily" ? "#nav-tab-daily" : state.currentTab === "study" ? "#nav-tab-study" : "#nav-tab-records"; } },
+  { segment: "level-segment", btn: function () { return state.level === "CET4" ? "#btn-cet4" : "#btn-cet6"; } },
+  { segment: "order-segment", btn: function () { return state.orderMode === "sequential" ? "#order-sequential" : "#order-random"; } },
+  { segment: "quiz-segment", btn: function () { return state.quiz.mode === "cn-en" ? "#quiz-mode-cn-en" : "#quiz-mode-en-cn"; } },
+  { segment: "daily-dictation-segment", btn: function () { return state.daily.dictationMode === "cn-en" ? "#daily-dict-cn-en" : "#daily-dict-en-cn"; } }
+];
+
+// 统一重算全部滑块由 trackSlider（shared.js）的持续跟踪替代，
+// 各页面在 init 时对每个 segment 调用 trackSlider 注册即可。
 
 const els = {
   authPanel: document.getElementById("auth-panel"),
@@ -1324,32 +1325,16 @@ function bindEvents() {
   els.dailySummaryContinue.addEventListener("click", () => {
     switchTab("study");
   });
-
-  // Daily dictation slider
-  window.addEventListener("resize", () => {
-    moveSlider("daily-dictation-segment", state.daily.dictationMode === "cn-en" ? "#daily-dict-cn-en" : "#daily-dict-en-cn");
-  });
 }
 
 async function init() {
   bindEvents();
   switchAuthTab("login");
 
-  // Initialize sliders after DOM is ready
-  requestAnimationFrame(() => {
-    moveSlider("auth-segment", "#tab-login");
-    moveSlider("nav-segment", "#nav-tab-daily");
-  });
-
-  // Recalculate sliders on resize
-  window.addEventListener("resize", () => {
-    moveSlider("auth-segment", state.authMode === "login" ? "#tab-login" : "#tab-register");
-    moveSlider("level-segment", state.level === "CET4" ? "#btn-cet4" : "#btn-cet6");
-    moveSlider("order-segment", state.orderMode === "sequential" ? "#order-sequential" : "#order-random");
-    moveSlider("quiz-segment", state.quiz.mode === "cn-en" ? "#quiz-mode-cn-en" : "#quiz-mode-en-cn");
-    moveSlider("daily-dictation-segment", state.daily.dictationMode === "cn-en" ? "#daily-dict-cn-en" : "#daily-dict-en-cn");
-    var tab = state.currentTab;
-    moveSlider("nav-segment", tab === "daily" ? "#nav-tab-daily" : tab === "study" ? "#nav-tab-study" : "#nav-tab-records");
+  // 所有 segment 滑块注册持续跟踪（初始计算 + 字体/尺寸变化 + 定时兜底），
+  // 修复：页面加载/字体加载/容器尺寸变化时滑块缺失或错位。
+  SLIDER_TARGETS.forEach(function (target) {
+    trackSlider(target.segment, target.btn);
   });
 
   state.user = await initAuth({

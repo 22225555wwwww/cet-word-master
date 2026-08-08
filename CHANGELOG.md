@@ -1,5 +1,20 @@
 # 更新日志
 
+## 2026-08-08
+
+### 新功能
+- **管理员词库分页**：`GET /api/admin/words` 支持 `page` / `pageSize` 参数（默认 50，上限 200），前端管理页新增翻页控件与总数显示
+- **Session 持久化**：express-session 从默认 MemoryStore 换为 SQLite 存储（better-sqlite3-session-store），进程重启后登录状态不丢失，为多副本部署消除会话存储瓶颈
+
+### 质量改进
+- **单元测试**：新增 48 个测试用例（node:test，零新依赖），覆盖 daily-system、认证中间件、认证路由、背诵记录路由；`npm test` 正式启用
+- **代码清理**：删除根目录遗留死代码（index.html / script.js / styles.css，服务端仅加载 public/），README 项目结构同步修正
+
+### Bug 修复
+- **切换按钮选中态（黑色高亮）修复**：新增 `trackSlider` 持续跟踪机制（立即计算 + ResizeObserver 监听尺寸变化 + 字体加载完成重算 + 定时兜底），根治手写字体异步加载导致的滑块时有时无、错位问题
+- **词库页滑块从未显示**：vocab.js 缺失滑块逻辑，滑块宽度恒为 0；`moveSlider` 提取至 shared.js 共用后修复
+- **语法页分类选中不可见**：语法分类按钮复用 segment-btn 样式但容器无滑块，选中文字为浅色几乎不可见；无滑块容器增加黑底白字兜底样式
+
 ## 2026-05-14
 
 ### 安全修复

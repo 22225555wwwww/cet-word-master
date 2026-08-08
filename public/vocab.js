@@ -39,6 +39,7 @@ function renderLevelButtons() {
   els.levelCET6Btn.classList.toggle("active", !is4);
   els.levelCET4Btn.setAttribute("aria-selected", String(is4));
   els.levelCET6Btn.setAttribute("aria-selected", String(!is4));
+  moveSlider("vocab-level-segment", is4 ? "#level-cet4" : "#level-cet6");
 }
 
 function renderPager() {
@@ -295,6 +296,12 @@ async function init() {
 
   await Promise.all([loadRecords(), loadWordsPaged()]);
   renderAll();
+
+  // 滑块持续跟踪（初始计算 + 字体/尺寸变化 + 定时兜底），
+  // 避免字体异步加载导致黑色高亮缺失或错位
+  trackSlider("vocab-level-segment", function () {
+    return state.level === "CET4" ? "#level-cet4" : "#level-cet6";
+  });
 }
 
 init();

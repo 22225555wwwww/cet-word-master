@@ -1,5 +1,62 @@
 // Shared utilities for all pages
 
+// ---- Shared UI helpers ----
+
+// 移动 segment 滑块到选中按钮（黑色高亮）。segmentId 是容器 id，
+// activeBtn 是选中按钮的 CSS 选择器（如 "#btn-cet4"）。
+function moveSlider(segmentId, activeBtn) {
+  var segment = document.getElementById(segmentId);
+  if (!segment) return;
+  var slider = segment.querySelector(".slider");
+  if (!slider) return;
+  var btn = segment.querySelector(activeBtn);
+  if (!btn) return;
+  var segmentRect = segment.getBoundingClientRect();
+  var btnRect = btn.getBoundingClientRect();
+  var padding = parseFloat(getComputedStyle(segment).paddingLeft) || 4;
+  slider.style.width = btnRect.width + "px";
+  slider.style.transform = "translateX(" + (btnRect.left - segmentRect.left - padding) + "px)";
+}
+
+// 持续跟踪某个 segment 的滑块：在页面加载、字体加载完成、窗口尺寸变化、
+// 容器/按钮尺寸变化（ResizeObserver）、以及加载后 0.5s/1.5s/3s 定时兜底
+// 时重算滑块位置。解决字体异步加载（如 Google Fonts 被墙时加载时机随机）
+// 导致滑块时有时无、错位的问题。
+// getActiveBtn 是返回选中按钮选择器字符串的函数（每次重算时动态取值）。
+function trackSlider(segmentId, getActiveBtn) {
+  var segment = document.getElementById(segmentId);
+  if (!segment) return;
+
+  function recalc() {
+    var selector = getActiveBtn();
+    if (!selector) return;
+    moveSlider(segmentId, selector);
+  }
+
+  recalc();
+  requestAnimationFrame(recalc);
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(recalc).catch(function () {});
+  }
+  window.addEventListener("load", recalc);
+  window.addEventListener("resize", recalc);
+
+  // 容器或按钮尺寸任何变化（字体加载、布局变化、登录面板切换）都重算
+  if (typeof ResizeObserver !== "undefined") {
+    var observer = new ResizeObserver(recalc);
+    observer.observe(segment);
+    segment.querySelectorAll(".segment-btn").forEach(function (btn) {
+      observer.observe(btn);
+    });
+  }
+
+  // 兜底：字体加载竞态下定时重算几次
+  [500, 1500, 3000].forEach(function (ms) {
+    setTimeout(recalc, ms);
+  });
+}
+
 // ---- Auth & session ----
 
 // Resume session. Calls onFail instead of redirecting when unauthenticated.
