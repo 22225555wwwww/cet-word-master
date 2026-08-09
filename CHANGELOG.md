@@ -2,6 +2,20 @@
 
 ## 2026-08-09
 
+### 代码优化
+
+- **`/api/words` 支持可选分页**：传 `page`/`pageSize` 时返回分页结果，不带参数保持全量返回（兼容旧前端）；实测 4536 词下分页/全量均正常
+- **分页参数解析收敛**：新增 `src/pagination.js` 的 `parsePageParams`，消除 `/api/words/paged`、`/api/words/search`、`/api/admin/words` 三处重复解析逻辑
+- **签到原子化**：`POST /api/checkin` 的签到更新与当日单词分配包进 SQLite 事务，任一步失败整体回滚，不再出现部分成功
+- **phonetic 字符白名单**：管理员手工新增/编辑单词时音标字段增加 IPA 白名单校验（覆盖 `ɡ` 等常用音标符号，空音标仍允许），导入词库不受影响——纵深防御，配合既有 6 处前端转义
+- **删除死代码**：`public/effects.js` / `effects.css`（5 个页面 0 引用）移除
+- **语法检查脚本**：新增 `scripts/lint-syntax.js`（跨平台 node --check 全库扫描）与 `npm run lint`；`package.json` 补充 `engines.node >= 20`
+- **前端公共函数收敛**（Kimi K3 子代理完成）：`levelText()` 提取至 shared.js（消除 6 处"四级/六级"映射重复）；`loadRecords(state)` 提取至 shared.js（app.js 与 vocab.js 去重）；admin.js 双份 `showMessage` 合一（11 处调用适配）；词库页/个人页等级列补 `escapeHtml`；`init()` 增加 `.catch` 启动兜底，不再产生 unhandled rejection
+
+### 测试
+
+- 新增 `test/pagination.test.js`（parsePageParams 边界 5 用例）、`test/admin.test.js`（phonetic 白名单 4 用例）、words 可选分页 3 用例——**76 个用例全绿**
+
 ### 工程化
 
 - **K8s 清单真实部署验证（OrbStack）**：修复 `runAsNonRoot: true` + 镜像符号 USER（node）冲突导致的 `CreateContainerConfigError`——显式声明 `runAsUser/runAsGroup: 1000`；新增 `k8s/overlays/orbstack/` 本地镜像 overlay（kustomize 不支持 overlay 位于 base 内部，以 LoadRestrictionsNone 方式逐个引用）。实测通过：健康检查、注册/登录/会话、每日任务/词库/语法/统计/管理后台 API、PVC 数据在 Pod 重建后持久、非 root 运行。Ingress 因 OrbStack 集群无 ingress controller 未验证（建议接入真实域名前装 ingress-nginx 或改用 NodePort）
