@@ -2,6 +2,16 @@
 
 ## 2026-08-09
 
+### 工程化
+
+- **K8s 清单真实部署验证（OrbStack）**：修复 `runAsNonRoot: true` + 镜像符号 USER（node）冲突导致的 `CreateContainerConfigError`——显式声明 `runAsUser/runAsGroup: 1000`；新增 `k8s/overlays/orbstack/` 本地镜像 overlay（kustomize 不支持 overlay 位于 base 内部，以 LoadRestrictionsNone 方式逐个引用）。实测通过：健康检查、注册/登录/会话、每日任务/词库/语法/统计/管理后台 API、PVC 数据在 Pod 重建后持久、非 root 运行。Ingress 因 OrbStack 集群无 ingress controller 未验证（建议接入真实域名前装 ingress-nginx 或改用 NodePort）
+- **全量词库性能基准**：新增零依赖基准脚本 `scripts/bench.js`（Node 内置模块）与报告 `docs/perf-report.md`。实测 10 个接口 × 并发 1/5/20 × 1500 请求全部 200 且 p95 ≤ 174ms（单用户场景 p95 ≤ 30ms）；登录 bcrypt 约 60-73ms（不纳入基准）；瓶颈为 better-sqlite3 同步查询锁事件循环（重查询 QPS 上限约 400-500/s），OFFSET 末页比首页慢约 3 倍，搜索为无索引 LIKE 全表扫描（6760 行仍 <3ms）
+
+### 文档
+
+- **README 展示版**：新增功能亮点、shields.io 徽章行、6 张页面截图（`docs/screenshots/`）、mermaid 架构图、测试说明、词库导入小节、API 与环境变量补充
+- **面试讲稿**：新增 `docs/interview-5min.md`（5 分钟讲述稿 + 12 个高频追问 Q&A + 关键数字速查）
+
 ### 低危修复
 
 - **会话固定防护**：登录/注册成功后轮换 session ID（`req.session.regenerate`），登出时检查销毁错误
