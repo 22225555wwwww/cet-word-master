@@ -57,14 +57,13 @@ function renderPager() {
 }
 
 function renderStats() {
+  // levelText 为 shared.js 公共函数（四级/六级等级名映射）
   if (state.isSearching && state.searchQ) {
-    const levelText = state.level === "CET4" ? "四级" : "六级";
-    els.vocabStats.textContent = `搜索"${state.searchQ}" — ${levelText}词汇找到 ${state.total} 个结果`;
+    els.vocabStats.textContent = `搜索"${state.searchQ}" — ${levelText(state.level)}词汇找到 ${state.total} 个结果`;
     return;
   }
 
-  const levelText = state.level === "CET4" ? "四级" : "六级";
-  els.vocabStats.textContent = `${levelText}词汇共 ${state.total} 个，当前每页 ${state.pageSize} 个`;
+  els.vocabStats.textContent = `${levelText(state.level)}词汇共 ${state.total} 个，当前每页 ${state.pageSize} 个`;
 }
 
 function renderTable() {
@@ -81,7 +80,7 @@ function renderTable() {
       const record = state.recordMap.get(word.id);
       return `
       <tr>
-        <td>${word.level === "CET4" ? "四级" : "六级"}</td>
+        <td>${escapeHtml(levelText(word.level))}</td>
         <td>${escapeHtml(word.word)}</td>
         <td>${escapeHtml(word.phonetic || "-")}</td>
         <td>${escapeHtml(word.meaning)}</td>
@@ -112,11 +111,7 @@ function renderAll() {
   renderSearchState();
 }
 
-async function loadRecords() {
-  const data = await api("/api/records");
-  const rows = data.records || [];
-  state.recordMap = new Map(rows.map((row) => [row.wordId, row]));
-}
+// loadRecords 已提取到 shared.js（以 app.js 版本为准），传入本页 state 使用
 
 async function loadWordsPaged() {
   const seq = ++state.reqSeq;
@@ -240,7 +235,7 @@ async function refreshCounts() {
   try {
     state.loading = true;
     renderPager();
-    await loadRecords();
+    await loadRecords(state);
     renderAll();
   } finally {
     state.loading = false;
@@ -301,7 +296,7 @@ async function init() {
   });
   if (!state.user) return;
 
-  await Promise.all([loadRecords(), loadWordsPaged()]);
+  await Promise.all([loadRecords(state), loadWordsPaged()]);
   renderAll();
 
   // 滑块持续跟踪（初始计算 + 字体/尺寸变化 + 定时兜底），

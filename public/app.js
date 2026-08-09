@@ -297,7 +297,7 @@ function renderRecords() {
     .map(
       (row) => `
       <tr>
-        <td>${escapeHtml(row.level === "CET4" ? "四级" : "六级")}</td>
+        <td>${escapeHtml(levelText(row.level))}</td>
         <td>${escapeHtml(row.word)}</td>
         <td>${escapeHtml(row.phonetic || "-")}</td>
         <td>${escapeHtml(row.meaning)}</td>
@@ -333,7 +333,7 @@ function renderDictationRecords() {
     .map(
       (row) => `
       <tr>
-        <td>${escapeHtml(row.level === "CET4" ? "四级" : "六级")}</td>
+        <td>${escapeHtml(levelText(row.level))}</td>
         <td>${escapeHtml(row.word)}</td>
         <td>${escapeHtml(row.phonetic || "-")}</td>
         <td>${escapeHtml(row.meaning)}</td>
@@ -495,11 +495,7 @@ async function loadWords(level) {
   state.words[level] = data.words || [];
 }
 
-async function loadRecords() {
-  const data = await api("/api/records");
-  state.records = data.records || [];
-  state.recordMap = new Map(state.records.map((row) => [row.wordId, row]));
-}
+// loadRecords 已提取到 shared.js，传入本页 state 使用
 
 function resetQuizForCurrentLevel() {
   state.quiz.currentWordId = null;
@@ -620,7 +616,7 @@ function enterLoggedOutState() {
 }
 
 async function bootstrapLoggedInData() {
-  await Promise.all([loadWords("CET4"), loadWords("CET6"), loadRecords()]);
+  await Promise.all([loadWords("CET4"), loadWords("CET6"), loadRecords(state)]);
   state.level = "CET4";
   state.index = 0;
   state.orderMode = "sequential";
@@ -699,7 +695,7 @@ async function rememberWordById(wordId) {
     method: "POST",
     body: { wordId }
   });
-  await loadRecords();
+  await loadRecords(state);
   renderWordCard();
   renderWordList();
   renderRecords();
@@ -861,7 +857,7 @@ async function submitQuizAnswer() {
           api("/api/records/remember", { method: "POST", body: { wordId: current.id } }),
           api("/api/records/dictation-success", { method: "POST", body: { wordId: current.id } })
         ]);
-        await loadRecords();
+        await loadRecords(state);
         renderWordCard();
         renderWordList();
         renderRecords();
@@ -916,7 +912,7 @@ async function clearRecords() {
 
   try {
     await api("/api/records", { method: "DELETE" });
-    await loadRecords();
+    await loadRecords(state);
     renderApp();
   } catch (error) {
     alert(error.message);
@@ -1145,7 +1141,7 @@ async function handleDailyRemember(wordId) {
     const today = data.today;
 
     // Also reload records for quiz section
-    await loadRecords();
+    await loadRecords(state);
 
     renderDailyProgress(today);
     state.daily.words = today.words;
@@ -1194,7 +1190,7 @@ async function submitDailyDictationAnswer() {
       renderDailyProgress(today);
       renderDailyWordGrid();
 
-      await loadRecords();
+      await loadRecords(state);
       renderRecords();
       renderDictationRecords();
 
@@ -1449,4 +1445,9 @@ async function init() {
   renderApp();
 }
 
-init();
+// 启动兜底：init / bootstrapLoggedInData 任一环节失败时打印错误并给出可读提示，
+// 避免 unhandled rejection 导致页面卡死
+init().catch(function (error) {
+  console.error("[app] 初始化失败：", error);
+  alert("页面初始化失败，请刷新重试：" + (error && error.message ? error.message : String(error)));
+});

@@ -38,9 +38,11 @@ const els = {
 };
 
 
-function showMessage(text, isError = false) {
-  els.wordsMsg.textContent = text || "";
-  els.wordsMsg.style.color = isError ? "#8f1d2c" : "#2f4f3f";
+// 统一消息提示：默认写入单词区消息元素，area 传 "grammar" 时写入语法区
+function showMessage(text, isError = false, area) {
+  const el = area === "grammar" ? els.grammarMsg : els.wordsMsg;
+  el.textContent = text || "";
+  el.style.color = isError ? "#8f1d2c" : "#2f4f3f";
 }
 
 function showDenied(message) {
@@ -67,7 +69,7 @@ function renderOverview(overview, hotWords) {
       (row) => `
       <tr>
         <td>${escapeHtml(row.word)}</td>
-        <td>${escapeHtml(row.level === "CET4" ? "四级" : "六级")}</td>
+        <td>${escapeHtml(levelText(row.level))}</td>
         <td>${row.totalCount}</td>
       </tr>
     `
@@ -241,7 +243,7 @@ async function handleWordDelete(wordId) {
 }
 
 async function handleImportWords(level) {
-  const label = level === "CET4" ? "四级" : "六级";
+  const label = levelText(level);
   const btn = level === "CET4" ? els.importCet4 : els.importCet6;
   const originalText = btn.textContent;
 
@@ -295,11 +297,6 @@ async function handleAddWord(event) {
   } catch (error) {
     showMessage(error.message, true);
   }
-}
-
-function showGrammarMessage(text, isError = false) {
-  els.grammarMsg.textContent = text || "";
-  els.grammarMsg.style.color = isError ? "#8f1d2c" : "#2f4f3f";
 }
 
 function renderGrammarPoints() {
@@ -393,11 +390,11 @@ async function handleAddGrammarPoint(event) {
     });
 
     event.currentTarget.reset();
-    showGrammarMessage("语法点新增成功");
+    showMessage("语法点新增成功", false, "grammar");
     await loadGrammarPoints();
     renderGrammarPoints();
   } catch (error) {
-    showGrammarMessage(error.message, true);
+    showMessage(error.message, true, "grammar");
   }
 }
 
@@ -424,11 +421,11 @@ async function handleEditGrammarPoint(pointId) {
         explanation: explanation.trim()
       }
     });
-    showGrammarMessage("语法点更新成功");
+    showMessage("语法点更新成功", false, "grammar");
     await loadGrammarPoints();
     renderGrammarPoints();
   } catch (error) {
-    showGrammarMessage(error.message, true);
+    showMessage(error.message, true, "grammar");
   }
 }
 
@@ -437,11 +434,11 @@ async function handleDeleteGrammarPoint(pointId) {
 
   try {
     await api(`/api/admin/grammar/${pointId}`, { method: "DELETE" });
-    showGrammarMessage("删除成功");
+    showMessage("删除成功", false, "grammar");
     await loadGrammarPoints();
     renderGrammarPoints();
   } catch (error) {
-    showGrammarMessage(error.message, true);
+    showMessage(error.message, true, "grammar");
   }
 }
 
@@ -458,11 +455,11 @@ async function handleAddExample(pointId, form) {
       }
     });
     form.reset();
-    showGrammarMessage("例句添加成功");
+    showMessage("例句添加成功", false, "grammar");
     await loadGrammarPoints();
     renderGrammarPoints();
   } catch (error) {
-    showGrammarMessage(error.message, true);
+    showMessage(error.message, true, "grammar");
   }
 }
 
@@ -471,11 +468,11 @@ async function handleDeleteExample(exampleId) {
 
   try {
     await api(`/api/admin/examples/${exampleId}`, { method: "DELETE" });
-    showGrammarMessage("例句已删除");
+    showMessage("例句已删除", false, "grammar");
     await loadGrammarPoints();
     renderGrammarPoints();
   } catch (error) {
-    showGrammarMessage(error.message, true);
+    showMessage(error.message, true, "grammar");
   }
 }
 
@@ -547,7 +544,7 @@ function bindEvents() {
   els.refreshGrammar.addEventListener("click", () => {
     loadGrammarPoints()
       .then(() => renderGrammarPoints())
-      .catch((error) => showGrammarMessage(error.message, true));
+      .catch((error) => showMessage(error.message, true, "grammar"));
   });
 
   els.addGrammarForm.addEventListener("submit", handleAddGrammarPoint);

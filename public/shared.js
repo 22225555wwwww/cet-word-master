@@ -104,6 +104,13 @@ function renderUserArea(user, els) {
   if (els.adminLink) els.adminLink.classList.toggle("hidden", user.role !== "admin");
 }
 
+// ---- Level helpers ----
+
+// 等级名映射：CET4 显示为“四级”，其余（CET6）显示为“六级”
+function levelText(level) {
+  return level === "CET4" ? "四级" : "六级";
+}
+
 // ---- XSS prevention ----
 
 function escapeHtml(str) {
@@ -130,6 +137,17 @@ async function api(url, options) {
     throw new Error(data.message || "请求失败(" + res.status + ")");
   }
   return data;
+}
+
+// ---- Records ----
+
+// 加载当前用户的学习记录并写入页面 state：
+// state.records 保存记录数组，state.recordMap 建立 wordId -> 记录 的索引。
+// 调用方需传入本页的 state 对象（各页面 state 结构以 app.js 为准）。
+async function loadRecords(state) {
+  const data = await api("/api/records");
+  state.records = data.records || [];
+  state.recordMap = new Map(state.records.map((row) => [row.wordId, row]));
 }
 
 function toTimestamp(dateLike) {
