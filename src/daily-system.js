@@ -54,6 +54,7 @@ function ensureDailyWords(db, userId, level) {
       "SELECT w.id FROM words w " +
       "INNER JOIN user_word_records r ON r.word_id = w.id AND r.user_id = ? " +
       "WHERE w.level = ? AND w.is_high_freq = 1 AND r.remember_count > 0 " +
+      "AND r.last_reviewed_at IS NOT NULL " +
       "ORDER BY r.last_reviewed_at ASC " +
       "LIMIT 2"
     )
@@ -126,6 +127,9 @@ function updateCheckin(db, userId) {
   var consecutive = record.consecutive_days;
   if (diffDays === 1) {
     consecutive += 1;
+  } else if (diffDays < 0) {
+    // 未来日期（时钟回拨/客户端时间错误）：不更新记录、不重置连续天数，直接返回当前状态
+    return;
   } else {
     consecutive = 1;
   }

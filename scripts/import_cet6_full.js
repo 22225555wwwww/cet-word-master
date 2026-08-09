@@ -21,6 +21,7 @@ if (!fs.existsSync(sourcePath)) {
 }
 
 const db = new Database(dbPath);
+db.pragma("busy_timeout = 5000");
 db.pragma("foreign_keys = ON");
 
 ensureWordsColumns();

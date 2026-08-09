@@ -1,7 +1,7 @@
 var { Router } = require("express");
 var bcrypt = require("bcryptjs");
 
-function createAuthRoutes(db, { toSafeUser, authLimiter }) {
+function createAuthRoutes(db, { toSafeUser, authLimiter, registerLimiter }) {
   var router = Router();
 
   router.get("/me", function(req, res) {
@@ -11,7 +11,7 @@ function createAuthRoutes(db, { toSafeUser, authLimiter }) {
     return res.json({ authenticated: true, user: toSafeUser(req.currentUser) });
   });
 
-  router.post("/register", authLimiter, function(req, res) {
+  router.post("/register", registerLimiter, function(req, res) {
     var username = String(req.body.username || "").trim();
     var password = String(req.body.password || "");
 
@@ -28,10 +28,16 @@ function createAuthRoutes(db, { toSafeUser, authLimiter }) {
         "INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'user')"
       ).run(username, hash);
 
-      req.session.userId = result.lastInsertRowid;
-
       var user = db.prepare("SELECT id, username, role FROM users WHERE id = ?").get(result.lastInsertRowid);
-      return res.status(201).json({ message: "注册成功", user: toSafeUser(user) });
+
+      // 会话固定防护：先 regenerate 作废旧会话（攻击者预置的 session id），成功后再写入 userId
+      req.session.regenerate(function(err) {
+        if (err) {
+          return res.status(500).json({ message: "注册失败" });
+        }
+        req.session.userId = result.lastInsertRowid;
+        return res.status(201).json({ message: "注册成功", user: toSafeUser(user) });
+      });
     } catch (error) {
       if (String(error.code || "").startsWith("SQLITE_CONSTRAINT")) {
         return res.status(400).json({ message: "注册失败，请检查输入" });
@@ -61,12 +67,22 @@ function createAuthRoutes(db, { toSafeUser, authLimiter }) {
       return res.status(401).json({ message: "用户名或密码错误" });
     }
 
-    req.session.userId = user.id;
-    return res.json({ message: "登录成功", user: toSafeUser(user) });
+    // 会话固定防护：登录成功后 regenerate 换发全新 session id，再写入 userId
+    req.session.regenerate(function(err) {
+      if (err) {
+        return res.status(500).json({ message: "登录失败" });
+      }
+      req.session.userId = user.id;
+      return res.json({ message: "登录成功", user: toSafeUser(user) });
+    });
   });
 
   router.post("/logout", function(req, res) {
-    req.session.destroy(function() {
+    req.session.destroy(function(err) {
+      if (err) {
+        return res.status(500).json({ message: "退出失败" });
+      }
+      // cookie 名保持 express-session 默认值 connect.sid（服务端未自定义 session cookie name）
       res.clearCookie("connect.sid");
       res.json({ message: "已退出登录" });
     });

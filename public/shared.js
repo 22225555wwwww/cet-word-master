@@ -15,7 +15,8 @@ function moveSlider(segmentId, activeBtn) {
   var btnRect = btn.getBoundingClientRect();
   var padding = parseFloat(getComputedStyle(segment).paddingLeft) || 4;
   slider.style.width = btnRect.width + "px";
-  slider.style.transform = "translateX(" + (btnRect.left - segmentRect.left - padding) + "px)";
+  // 减去 segment 左边框宽度（clientLeft），否则滑块整体右偏约 1px
+  slider.style.transform = "translateX(" + (btnRect.left - segmentRect.left - padding - segment.clientLeft) + "px)";
 }
 
 // 持续跟踪某个 segment 的滑块：在页面加载、字体加载完成、窗口尺寸变化、

@@ -10,6 +10,10 @@ function createWordRoutes(db, { requireAuth, isValidLevel }) {
     }
 
     var scope = String(req.query.scope || "high");
+    // scope 仅接受 high / all，其余值（如 ALL、乱值）一律 400
+    if (scope !== "high" && scope !== "all") {
+      return res.status(400).json({ message: "scope 参数错误" });
+    }
     var onlyHigh = scope !== "all";
 
     var words = db.prepare(
@@ -30,7 +34,7 @@ function createWordRoutes(db, { requireAuth, isValidLevel }) {
     var rawPage = Number(req.query.page || 1);
     var rawPageSize = Number(req.query.pageSize || 50);
     var pageSize = Number.isFinite(rawPageSize)
-      ? Math.max(10, Math.min(200, Math.floor(rawPageSize)))
+      ? Math.max(1, Math.min(200, Math.floor(rawPageSize)))
       : 50;
     var requestedPage = Number.isFinite(rawPage) ? Math.max(1, Math.floor(rawPage)) : 1;
 
@@ -61,7 +65,7 @@ function createWordRoutes(db, { requireAuth, isValidLevel }) {
     var rawPage = Number(req.query.page || 1);
     var rawPageSize = Number(req.query.pageSize || 50);
     var pageSize = Number.isFinite(rawPageSize)
-      ? Math.max(10, Math.min(200, Math.floor(rawPageSize)))
+      ? Math.max(1, Math.min(200, Math.floor(rawPageSize)))
       : 50;
     var requestedPage = Number.isFinite(rawPage) ? Math.max(1, Math.floor(rawPage)) : 1;
 

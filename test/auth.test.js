@@ -133,7 +133,7 @@ describe('auth 路由 HTTP 集成', () => {
     });
     app.use(makeSessionStore());
     app.use(createAuthMiddleware(db));
-    app.use('/api/auth', createAuthRoutes(db, { toSafeUser, authLimiter: noopLimiter }));
+    app.use('/api/auth', createAuthRoutes(db, { toSafeUser, authLimiter: noopLimiter, registerLimiter: noopLimiter }));
     // 与 server.js 一致的错误处理：带 err.status 的错误按状态码返回（如 body-parser 非法 JSON → 400）
     app.use((err, _req, res, _next) => {
       const status = Number(err.status);
@@ -229,6 +229,66 @@ describe('auth 路由 HTTP 集成', () => {
       const me = await (await fetch(base + '/api/auth/me')).json();
       assert.strictEqual(me.authenticated, true);
       assert.strictEqual(me.user.username, 'bob');
+    });
+  });
+
+  test('POST /api/auth/login 登录后 session id 改变（防会话固定）', async () => {
+    const db = createTestDb();
+    insertUser(db, { username: 'bob', password: 'secret123' });
+    const store = makeSessionStore();
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      req.body = req.body || {};
+      next();
+    });
+    app.use(store);
+    app.use(createAuthMiddleware(db));
+    app.use('/api/auth', createAuthRoutes(db, { toSafeUser, authLimiter: noopLimiter, registerLimiter: noopLimiter }));
+    app.use((err, _req, res, _next) => {
+      res.status(500).json({ message: '服务器内部错误' });
+    });
+    await withServer(app, async (base) => {
+      const before = store.getSessionId();
+      const r = await postJSON(base + '/api/auth/login', {
+        username: 'bob',
+        password: 'secret123'
+      });
+      assert.strictEqual(r.status, 200);
+      assert.notStrictEqual(store.getSessionId(), before, '登录后 session id 必须更换');
+      // 新会话仍保持登录态
+      const me = await (await fetch(base + '/api/auth/me')).json();
+      assert.strictEqual(me.authenticated, true);
+      assert.strictEqual(me.user.username, 'bob');
+    });
+  });
+
+  test('POST /api/auth/register 注册后 session id 改变（防会话固定）', async () => {
+    const db = createTestDb();
+    const store = makeSessionStore();
+    const app = express();
+    app.use(express.json());
+    app.use((req, _res, next) => {
+      req.body = req.body || {};
+      next();
+    });
+    app.use(store);
+    app.use(createAuthMiddleware(db));
+    app.use('/api/auth', createAuthRoutes(db, { toSafeUser, authLimiter: noopLimiter, registerLimiter: noopLimiter }));
+    app.use((err, _req, res, _next) => {
+      res.status(500).json({ message: '服务器内部错误' });
+    });
+    await withServer(app, async (base) => {
+      const before = store.getSessionId();
+      const r = await postJSON(base + '/api/auth/register', {
+        username: 'alice',
+        password: 'secret123'
+      });
+      assert.strictEqual(r.status, 201);
+      assert.notStrictEqual(store.getSessionId(), before, '注册后 session id 必须更换');
+      const me = await (await fetch(base + '/api/auth/me')).json();
+      assert.strictEqual(me.authenticated, true);
+      assert.strictEqual(me.user.username, 'alice');
     });
   });
 

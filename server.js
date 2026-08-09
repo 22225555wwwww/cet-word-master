@@ -13,7 +13,11 @@ const { WORD_SEED } = require("./src/wordSeed");
 const { GRAMMAR_SEED } = require("./src/grammarSeed");
 const { getTodayDate, makeDailySystem } = require("./src/daily-system");
 
-const PORT = Number(process.env.PORT || 3000);
+var PORT = Number(process.env.PORT || 3000);
+// 非正整数 PORT（如 "abc" → NaN）会让 app.listen 抛 ERR_SOCKET_BAD_PORT 崩溃，回退默认 3000
+if (!Number.isInteger(PORT) || PORT <= 0 || PORT > 65535) {
+  PORT = 3000;
+}
 const NODE_ENV = String(process.env.NODE_ENV || "development");
 const IS_PRODUCTION = NODE_ENV === "production";
 const TRUST_PROXY = String(process.env.TRUST_PROXY || (IS_PRODUCTION ? "1" : "0")) === "1";
@@ -70,6 +74,14 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { message: "请求过于频繁，请 15 分钟后再试" }
 });
+// 注册与登录限流拆分：共用同一实例时，注册请求会耗尽同 IP 的登录额度
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "请求过于频繁，请 15 分钟后再试" }
+});
 
 app.use(express.json());
 // Express 5：无 Content-Type 的请求 req.body 为 undefined，兜底为空对象，避免路由读 req.body 抛 TypeError → 500
@@ -110,7 +122,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, now: new Date().toISOString() });
 });
 
-app.use("/api/auth", createAuthRoutes(db, { toSafeUser, authLimiter }));
+app.use("/api/auth", createAuthRoutes(db, { toSafeUser, authLimiter, registerLimiter }));
 app.use("/api/words", createWordRoutes(db, { requireAuth, isValidLevel }));
 app.use("/api/records", createRecordRoutes(db, { requireAuth }));
 app.use("/api/daily", createDailyRoutes(db, dailySystem, { requireAuth, isValidLevel }));
@@ -119,6 +131,11 @@ app.use("/api/stats", createStatsRoutes(db, dailySystem, { requireAuth }));
 app.use("/api/admin", createAdminRoutes(db, { requireAdmin, isValidLevel }));
 
 app.use(express.static(path.join(__dirname, "public")));
+
+// /api 未知路径兜底：返回 JSON 404（而不是静态资源的 HTML 404）
+app.use("/api", function(_req, res) {
+  res.status(404).json({ message: "接口不存在" });
+});
 
 app.use((err, _req, res, _next) => {
   console.error(err);
@@ -272,14 +289,22 @@ function seedGrammar() {
 }
 
 function seedAdmin() {
-  const admin = db.prepare("SELECT id FROM users WHERE username = ?").get("admin");
-  if (admin) return;
+  var admin = db.prepare("SELECT id, password_hash FROM users WHERE username = ?").get("admin");
 
-  const hash = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
-  db.prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')").run(
-    "admin",
-    hash
-  );
+  if (!admin) {
+    var hash = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
+    db.prepare("INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'admin')").run(
+      "admin",
+      hash
+    );
+    return;
+  }
+
+  // 环境变量 ADMIN_PASSWORD 变更时同步更新哈希；仅在 env 密码与库中哈希不匹配时更新，避免每次启动重写
+  if (!bcrypt.compareSync(DEFAULT_ADMIN_PASSWORD, admin.password_hash)) {
+    var newHash = bcrypt.hashSync(DEFAULT_ADMIN_PASSWORD, 10);
+    db.prepare("UPDATE users SET password_hash = ? WHERE username = 'admin'").run(newHash);
+  }
 }
 
 function ensureWordsColumns() {

@@ -310,6 +310,8 @@ function createAdminRoutes(db, { requireAdmin, isValidLevel }) {
     if (!category || category.length > 30) return res.status(400).json({ message: "分类不能为空" });
     if (!title || title.length > 100) return res.status(400).json({ message: "标题不能为空" });
     if (!explanation || explanation.length > 2000) return res.status(400).json({ message: "解释不能为空" });
+    // 与 POST /grammar 对齐：pattern 长度上限校验
+    if (pattern.length > 200) return res.status(400).json({ message: "句型结构不超过 200 字符" });
 
     var result = db.prepare(
       "UPDATE grammar_points SET category = ?, title = ?, pattern = ?, explanation = ? WHERE id = ?"

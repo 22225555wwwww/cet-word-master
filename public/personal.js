@@ -19,8 +19,9 @@ const els = {
 
 
 function getBadgeEmoji(level) {
-  const map = { bronze: "", silver: "", gold: "", diamond: "" };
-  return map[level] || "";
+  // 后端按累计记忆单词数分档：<100 青铜、>=100 白银、>=300 黄金、>=500 钻石
+  const map = { bronze: "🥉", silver: "🥈", gold: "🥇", diamond: "💎" };
+  return map[level] || "🏅";
 }
 
 function renderStatsCards() {

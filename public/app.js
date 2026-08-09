@@ -592,9 +592,13 @@ function switchQuizMode(mode) {
   renderQuizCard();
 }
 
+// 面板切换防交错：300ms 过渡期间重复调用先取消上一个定时器
+let panelTransitionTimer = null;
+
 function enterLoggedInState() {
+  clearTimeout(panelTransitionTimer);
   els.authPanel.classList.add("panel-hide");
-  setTimeout(() => {
+  panelTransitionTimer = setTimeout(() => {
     els.authPanel.classList.add("hidden");
     els.authPanel.classList.remove("panel-hide");
     els.appPanel.classList.remove("hidden");
@@ -604,8 +608,9 @@ function enterLoggedInState() {
 }
 
 function enterLoggedOutState() {
+  clearTimeout(panelTransitionTimer);
   els.appPanel.classList.add("panel-hide");
-  setTimeout(() => {
+  panelTransitionTimer = setTimeout(() => {
     els.appPanel.classList.add("hidden");
     els.appPanel.classList.remove("panel-hide");
     els.authPanel.classList.remove("hidden");
@@ -634,10 +639,15 @@ async function bootstrapLoggedInData() {
   }
 }
 
+// 登录/注册提交防重入：请求期间忽略重复提交（防双击/连按回车）
+let authSubmitting = false;
+
 async function handleLoginSubmit(event) {
   event.preventDefault();
+  if (authSubmitting) return;
   const form = new FormData(event.currentTarget);
 
+  authSubmitting = true;
   try {
     const data = await api("/api/auth/login", {
       method: "POST",
@@ -653,13 +663,17 @@ async function handleLoginSubmit(event) {
     renderApp();
   } catch (error) {
     setAuthMessage(error.message, true);
+  } finally {
+    authSubmitting = false;
   }
 }
 
 async function handleRegisterSubmit(event) {
   event.preventDefault();
+  if (authSubmitting) return;
   const form = new FormData(event.currentTarget);
 
+  authSubmitting = true;
   try {
     const data = await api("/api/auth/register", {
       method: "POST",
@@ -675,6 +689,8 @@ async function handleRegisterSubmit(event) {
     renderApp();
   } catch (error) {
     setAuthMessage(error.message, true);
+  } finally {
+    authSubmitting = false;
   }
 }
 
@@ -709,10 +725,10 @@ function nextWord() {
   // Animate card out then in
   const card = document.querySelector(".word-card");
   if (card) {
+    // 先移除两个动画类并强制 reflow，确保每次点击都重新触发动画
+    card.classList.remove("word-slide-left", "word-slide-right");
+    void card.offsetWidth;
     card.classList.add("word-slide-left");
-    card.addEventListener("animationend", function handler() {
-      card.removeEventListener("animationend", handler);
-    });
   }
 
   if (state.orderMode === "random") {
@@ -726,7 +742,7 @@ function nextWord() {
   // Animate new card in
   const newCard = document.querySelector(".word-card");
   if (newCard) {
-    newCard.classList.remove("word-slide-left");
+    newCard.classList.remove("word-slide-left", "word-slide-right");
     void newCard.offsetWidth;
     newCard.classList.add("word-slide-right");
   }
@@ -816,7 +832,12 @@ function nextQuizQuestion() {
   els.quizInput.focus();
 }
 
+// quiz 提交防重入：请求期间忽略重复点击/回车
+let quizSubmitting = false;
+
 async function submitQuizAnswer() {
+  if (quizSubmitting) return;
+
   const current = ensureQuizWord();
   const answer = els.quizInput.value;
   const result = checkDictationAnswer(current, answer, state.quiz.mode);
@@ -826,33 +847,38 @@ async function submitQuizAnswer() {
     return;
   }
 
-  state.quiz.total += 1;
-  state.quiz.answerRevealed = false;
+  quizSubmitting = true;
+  try {
+    state.quiz.total += 1;
+    state.quiz.answerRevealed = false;
 
-  if (result.correct) {
-    state.quiz.correct += 1;
-    setQuizFeedback(`回答正确，已计入记住和成功默写次数。答案：${result.expected}`, "success");
+    if (result.correct) {
+      state.quiz.correct += 1;
+      setQuizFeedback(`回答正确，已计入记住和成功默写次数。答案：${result.expected}`, "success");
 
-    try {
-      await Promise.all([
-        api("/api/records/remember", { method: "POST", body: { wordId: current.id } }),
-        api("/api/records/dictation-success", { method: "POST", body: { wordId: current.id } })
-      ]);
-      await loadRecords();
-      renderWordCard();
-      renderWordList();
-      renderRecords();
-      renderDictationRecords();
-    } catch (_error) {
-      setQuizFeedback(`回答正确，但记录次数失败。正确答案：${result.expected}`, "error");
+      try {
+        await Promise.all([
+          api("/api/records/remember", { method: "POST", body: { wordId: current.id } }),
+          api("/api/records/dictation-success", { method: "POST", body: { wordId: current.id } })
+        ]);
+        await loadRecords();
+        renderWordCard();
+        renderWordList();
+        renderRecords();
+        renderDictationRecords();
+      } catch (_error) {
+        setQuizFeedback(`回答正确，但记录次数失败。正确答案：${result.expected}`, "error");
+      }
+    } else {
+      setQuizFeedback(`回答不正确，正确答案：${result.expected}`, "error");
+      state.quiz.answerRevealed = true;
     }
-  } else {
-    setQuizFeedback(`回答不正确，正确答案：${result.expected}`, "error");
-    state.quiz.answerRevealed = true;
-  }
 
-  renderQuizStats();
-  renderQuizCard();
+    renderQuizStats();
+    renderQuizCard();
+  } finally {
+    quizSubmitting = false;
+  }
 }
 
 function markDontKnowCurrentQuizWord() {
@@ -1058,6 +1084,9 @@ function showDailyPhase(phase) {
 function renderDailyPanel(today, streak) {
   if (!today || !today.words.length) {
     els.dailyLoading.textContent = "暂无今日任务";
+    els.dailyLoading.classList.remove("hidden");
+    // 同时隐藏内容区，避免上次渲染的残留内容仍可见
+    els.dailyContent.classList.add("hidden");
     return;
   }
 

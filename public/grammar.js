@@ -125,7 +125,9 @@ function closeDetail() {
 async function switchCategory(category) {
   state.currentCategory = category;
   state.expandedId = null;
-  await loadPoints();
+  // 同时刷新分类计数与列表（管理员后台改动后无需刷新整页）；
+  // 两者都 await 完成后再统一渲染，保证渲染顺序一致、无竞态
+  await Promise.all([loadCategories(), loadPoints()]);
   renderCategories();
   renderList();
 }
@@ -175,9 +177,14 @@ async function init() {
   if (!state.user) return;
 
   renderUserArea(state.user, els);
-  await Promise.all([loadCategories(), loadPoints()]);
-  renderCategories();
-  renderList();
+  try {
+    await Promise.all([loadCategories(), loadPoints()]);
+    renderCategories();
+    renderList();
+  } catch (error) {
+    // 初始化失败兜底：页面提示而非白屏
+    els.grammarList.innerHTML = `<p class="hint">加载失败，请刷新重试（${escapeHtml(error.message)}）</p>`;
+  }
 }
 
 init();

@@ -126,16 +126,26 @@ function makeNext() {
   return next;
 }
 
-// 模拟 express-session：同一 store 内共享 userId，支持 destroy(cb)
+// 模拟 express-session：同一 store 内共享 userId，支持 destroy(cb) 与 regenerate(cb)
+// （regenerate 与 express-session 一致：作废旧会话、换发全新 session id，数据不保留）
+// 返回的中间件函数上挂 getSessionId()/getUserId() 供测试断言会话状态
 function makeSessionStore() {
-  const state = { userId: null };
-  return function sessionMiddleware(req, _res, next) {
+  const state = { userId: null, sessionId: 'sess-' + Math.random().toString(36).slice(2) };
+  function sessionMiddleware(req, _res, next) {
     req.session = {
+      get id() {
+        return state.sessionId;
+      },
       get userId() {
         return state.userId;
       },
       set userId(v) {
         state.userId = v;
+      },
+      regenerate(cb) {
+        state.userId = null;
+        state.sessionId = 'sess-' + Math.random().toString(36).slice(2);
+        if (cb) cb();
       },
       destroy(cb) {
         state.userId = null;
@@ -143,7 +153,14 @@ function makeSessionStore() {
       }
     };
     next();
+  }
+  sessionMiddleware.getSessionId = function () {
+    return state.sessionId;
   };
+  sessionMiddleware.getUserId = function () {
+    return state.userId;
+  };
+  return sessionMiddleware;
 }
 
 // 限流中间件桩：直接放行，避免干扰测试

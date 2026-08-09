@@ -599,8 +599,13 @@ async function init() {
   renderUserArea(state.me, { adminUser: els.adminUser });
 
   showAdminPanels();
-  await Promise.all([loadOverview(), loadUsers(), loadWords(), loadGrammarPoints()]);
-  renderGrammarPoints();
+  try {
+    await Promise.all([loadOverview(), loadUsers(), loadWords(), loadGrammarPoints()]);
+    renderGrammarPoints();
+  } catch (error) {
+    // 初始化失败兜底：页面提示而非白屏
+    showMessage(`加载失败，请刷新重试：${error.message}`, true);
+  }
 }
 
 init();
