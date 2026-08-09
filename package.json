@@ -8,7 +8,11 @@
     "dev": "node server.js",
     "import:cet4": "node scripts/import_cet4_full.js",
     "import:cet6": "node scripts/import_cet6_full.js",
-    "test": "node --test"
+    "test": "node --test",
+    "lint": "node scripts/lint-syntax.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "keywords": [],
   "author": "",

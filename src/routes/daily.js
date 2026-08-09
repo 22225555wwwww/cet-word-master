@@ -4,14 +4,19 @@ var { getTodayDate } = require("../daily-system");
 function createDailyRoutes(db, dailySystem, { requireAuth, isValidLevel }) {
   var router = Router();
 
+  // 签到 = 更新签到记录 + 分配当日单词，两步必须原子完成（任一失败整体回滚）
+  var checkinTx = db.transaction(function(userId, level) {
+    dailySystem.updateCheckin(userId);
+    dailySystem.ensureDailyWords(userId, level);
+  });
+
   router.post("/checkin", requireAuth, function(req, res) {
     var level = String(req.body.level || "CET4");
     if (!isValidLevel(level)) {
       return res.status(400).json({ message: "level 参数错误" });
     }
 
-    dailySystem.updateCheckin(req.currentUser.id);
-    dailySystem.ensureDailyWords(req.currentUser.id, level);
+    checkinTx(req.currentUser.id, level);
 
     var today = getTodayDate();
     var progress = dailySystem.getTodayProgress(req.currentUser.id, level, today);

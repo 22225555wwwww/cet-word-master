@@ -1,6 +1,15 @@
 var { Router } = require("express");
 var fs = require("fs");
 var path = require("path");
+var { parsePageParams } = require("../pagination");
+
+// 管理员手工录入音标的白名单：IPA 音标符号 + 括号/空格/连字符/撇号/重音符号/数字
+// 仅约束手工编辑（导入词库走 parseWordLine，不受此限制）
+var PHONETIC_WHITELIST = /^[a-zA-Zɡəɜæɑʌɒɔɪʊɛɚɝŋθðʃʒʧʤɹɾɬˈˌːˑ.()\[\]\s'\-0-9]+$/;
+
+function isValidPhonetic(value) {
+  return value.length <= 100 && (value === "" || PHONETIC_WHITELIST.test(value));
+}
 
 function parseWordLine(input) {
   var line = String(input || "").trim();
@@ -96,36 +105,31 @@ function createAdminRoutes(db, { requireAdmin, isValidLevel }) {
       return res.status(400).json({ message: "level 参数错误" });
     }
 
-    var rawPage = Number(req.query.page || 1);
-    var rawPageSize = Number(req.query.pageSize || 50);
-    var pageSize = Number.isFinite(rawPageSize)
-      ? Math.max(1, Math.min(200, Math.floor(rawPageSize)))
-      : 50;
-    var requestedPage = Number.isFinite(rawPage) ? Math.max(1, Math.floor(rawPage)) : 1;
+    var p = parsePageParams(req.query);
 
     var total = level
       ? db.prepare("SELECT COUNT(*) AS count FROM words WHERE level = ?").get(level).count
       : db.prepare("SELECT COUNT(*) AS count FROM words").get().count;
 
-    var totalPages = Math.max(1, Math.ceil(total / pageSize));
-    var page = Math.min(requestedPage, totalPages);
-    var offset = (page - 1) * pageSize;
+    var totalPages = Math.max(1, Math.ceil(total / p.pageSize));
+    var page = Math.min(p.page, totalPages);
+    var offset = (page - 1) * p.pageSize;
 
     var words = level
       ? db.prepare(
           "SELECT id, level, word, phonetic, meaning, created_at AS createdAt " +
           "FROM words WHERE level = ? ORDER BY id DESC LIMIT ? OFFSET ?"
-        ).all(level, pageSize, offset)
+        ).all(level, p.pageSize, offset)
       : db.prepare(
           "SELECT id, level, word, phonetic, meaning, created_at AS createdAt " +
           "FROM words ORDER BY id DESC LIMIT ? OFFSET ?"
-        ).all(pageSize, offset);
+        ).all(p.pageSize, offset);
 
     return res.json({
       words: words,
       total: total,
       page: page,
-      pageSize: pageSize,
+      pageSize: p.pageSize,
       totalPages: totalPages
     });
   });
@@ -139,7 +143,7 @@ function createAdminRoutes(db, { requireAdmin, isValidLevel }) {
     if (!isValidLevel(level)) return res.status(400).json({ message: "level 参数错误" });
     if (!word || word.length > 50) return res.status(400).json({ message: "单词不能为空且不超过 50 字符" });
     if (!meaning || meaning.length > 200) return res.status(400).json({ message: "释义不能为空且不超过 200 字符" });
-    if (phonetic.length > 100) return res.status(400).json({ message: "音标不超过 100 字符" });
+    if (!isValidPhonetic(phonetic)) return res.status(400).json({ message: "音标含非法字符或超过 100 字符" });
 
     try {
       var result = db.prepare(
@@ -170,7 +174,7 @@ function createAdminRoutes(db, { requireAdmin, isValidLevel }) {
     if (!isValidLevel(level)) return res.status(400).json({ message: "level 参数错误" });
     if (!word || word.length > 50) return res.status(400).json({ message: "单词不能为空且不超过 50 字符" });
     if (!meaning || meaning.length > 200) return res.status(400).json({ message: "释义不能为空且不超过 200 字符" });
-    if (phonetic.length > 100) return res.status(400).json({ message: "音标不超过 100 字符" });
+    if (!isValidPhonetic(phonetic)) return res.status(400).json({ message: "音标含非法字符或超过 100 字符" });
 
     try {
       var result = db.prepare(

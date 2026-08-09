@@ -117,3 +117,47 @@ describe('words /search LIKE 通配符转义', () => {
     });
   });
 });
+
+describe('words GET / 可选分页参数', () => {
+  function seed(db) {
+    for (let i = 1; i <= 5; i++) insertWord(db, `word${i}`, `意思${i}`);
+  }
+
+  test('不带分页参数时保持全量返回（兼容旧行为）', async () => {
+    const db = createTestDb();
+    seed(db);
+    await withServer(buildApp(db), async (base) => {
+      const res = await fetch(`${base}/api/words`);
+      assert.strictEqual(res.status, 200);
+      const body = await res.json();
+      assert.strictEqual(body.words.length, 5);
+      assert.strictEqual(body.page, undefined, '全量模式不返回分页字段');
+    });
+  });
+
+  test('带 page/pageSize 时返回分页结果', async () => {
+    const db = createTestDb();
+    seed(db);
+    await withServer(buildApp(db), async (base) => {
+      const res = await fetch(`${base}/api/words?page=2&pageSize=2`);
+      const body = await res.json();
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(body.page, 2);
+      assert.strictEqual(body.pageSize, 2);
+      assert.strictEqual(body.total, 5);
+      assert.strictEqual(body.totalPages, 3);
+      assert.deepStrictEqual(body.words.map((w) => w.word), ['word3', 'word4']);
+    });
+  });
+
+  test('page 超出总页数时钳制到末页', async () => {
+    const db = createTestDb();
+    seed(db);
+    await withServer(buildApp(db), async (base) => {
+      const res = await fetch(`${base}/api/words?page=99&pageSize=2`);
+      const body = await res.json();
+      assert.strictEqual(body.page, 3, '应钳制到末页');
+      assert.deepStrictEqual(body.words.map((w) => w.word), ['word5']);
+    });
+  });
+});
