@@ -25,6 +25,19 @@
   --shadow-print-sm: 2px 2px 0 rgba(25, 25, 20, 0.14);
   --transition: 0.2s ease;
 
+  /* 动效 token：强缓出（进入/按压）、强缓入出（屏上移动） */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --dur-press: 120ms;
+  --dur-ui: 200ms;
+  --dur-enter: 250ms;
+
+  /* 抬升面：比 sheet 更亮一级的暖白，用于输入框等着色纸面 */
+  --sheet-hi: #fffdf8;
+
+  /* 表单控件（checkbox/radio 等）的强调色统一走朱砂 */
+  accent-color: var(--accent);
+
   --font-serif: "Source Serif 4", "Noto Serif SC", Georgia, "Songti SC", serif;
   --font-sans: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
@@ -65,6 +78,8 @@
 
 body {
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.6;
   color: var(--ink);
   background-color: var(--paper);
   background-image:
@@ -301,7 +316,7 @@ body {
   height: calc(100% - 8px);
   background: var(--ink);
   border-radius: 3px;
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.24s var(--ease-in-out), width 0.24s var(--ease-in-out);
   z-index: 0;
   pointer-events: none;
 }
@@ -322,7 +337,7 @@ body {
   font-weight: 600;
   font-size: 13px;
   font-family: inherit;
-  transition: color 0.25s ease;
+  transition: color 160ms ease, transform var(--dur-press) var(--ease-out);
   letter-spacing: 0.02em;
   position: relative;
   z-index: 1;
@@ -331,6 +346,11 @@ body {
 
 .segment-btn:hover {
   color: var(--ink);
+}
+
+/* 分段按钮无投影，按压用轻缩放而非位移（覆盖全局 button:active 位移） */
+.segment-btn:not(:disabled):active {
+  transform: scale(0.96);
 }
 
 .segment-btn.active {
@@ -372,16 +392,31 @@ textarea {
   padding: 11px 14px;
   font-size: 15px;
   font-family: var(--font-sans);
-  background: #fff;
+  background: var(--sheet-hi);
   color: var(--ink);
-  transition: box-shadow var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--ink-3);
+  opacity: 0.75;
 }
 
 input:focus,
 select:focus,
 textarea:focus {
   outline: none;
+  border-color: var(--accent);
   box-shadow: 3px 3px 0 var(--accent);
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: var(--sheet-dim);
 }
 
 /* ===== Section Title ===== */
@@ -468,7 +503,7 @@ h2 {
   font-family: var(--font-serif);
   font-size: clamp(42px, 8vw, 64px);
   font-weight: 700;
-  letter-spacing: 0;
+  letter-spacing: -0.01em;
   line-height: 1.1;
   color: var(--ink);
 }
@@ -574,7 +609,7 @@ button,
   padding: 10px 18px;
   cursor: pointer;
   font-family: inherit;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background var(--transition), color var(--transition);
+  transition: transform var(--dur-press) var(--ease-out), box-shadow var(--dur-press) var(--ease-out), background-color var(--transition), color var(--transition);
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -584,18 +619,35 @@ button,
   white-space: nowrap;
 }
 
+button:disabled,
+.link-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 .primary {
   background: var(--ink);
   color: var(--sheet);
   box-shadow: var(--shadow-print-sm);
 }
 
-.primary:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 rgba(25, 25, 20, 0.2);
+/* 位移类 hover 只在精确指针设备启用，避免触屏点按触发残留 hover */
+@media (hover: hover) and (pointer: fine) {
+  .primary:not(:disabled):hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 rgba(25, 25, 20, 0.2);
+  }
+
+  .stamp:not(:disabled):hover {
+    background: var(--accent);
+    color: var(--sheet);
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 rgba(219, 51, 86, 0.3);
+  }
 }
 
-.primary:active {
+.primary:not(:disabled):active {
   transform: translate(1px, 1px);
   box-shadow: 0 0 0 rgba(25, 25, 20, 0);
 }
@@ -606,7 +658,7 @@ button,
   color: var(--ink);
 }
 
-.secondary:hover,
+.secondary:not(:disabled):hover,
 .link-btn:hover {
   background: var(--sheet-dim);
 }
@@ -617,7 +669,7 @@ button,
   border-color: var(--accent);
 }
 
-.danger:hover {
+.danger:not(:disabled):hover {
   background: var(--accent-soft);
 }
 
@@ -631,19 +683,12 @@ button,
   box-shadow: 2px 2px 0 rgba(219, 51, 86, 0.25);
 }
 
-.stamp:hover {
-  background: var(--accent);
-  color: var(--sheet);
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0 rgba(219, 51, 86, 0.3);
-}
-
-.stamp:active {
+.stamp:not(:disabled):active {
   transform: translate(1px, 1px);
   box-shadow: 0 0 0 rgba(219, 51, 86, 0);
 }
 
-button:active,
+button:not(:disabled):active,
 .link-btn:active {
   transform: translate(1px, 1px);
 }
@@ -674,6 +719,11 @@ button:active,
   font-size: 14px;
   color: var(--ink-3);
   transition: color var(--transition);
+}
+
+/* 折叠标记一点朱砂，与页边批注的 ※ 呼应 */
+.list-panel summary::marker {
+  color: var(--accent);
 }
 
 .list-panel summary:hover {
@@ -759,6 +809,10 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
+tbody td {
+  transition: background-color 120ms ease;
+}
+
 tr:hover td {
   background: rgba(25, 25, 20, 0.03);
 }
@@ -815,12 +869,18 @@ tr:hover td {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: border-color var(--transition), color var(--transition);
+  transition: border-color var(--transition), color var(--transition), transform var(--dur-press) var(--ease-out);
 }
 
 .search-clear-btn:hover {
   border-color: var(--line-strong);
   color: var(--ink);
+}
+
+/* 该按钮靠 translateY(-50%) 垂直居中，按压时必须保留位移基准，
+   否则全局 button:active 的 translate(1px,1px) 会让它跳位 */
+.search-clear-btn:not(:disabled):active {
+  transform: translateY(-50%) scale(0.9);
 }
 
 /* ===== Table Controls ===== */
@@ -865,6 +925,13 @@ tr:hover td {
   gap: 6px;
 }
 
+/* 后台表格内的角色下拉：比常规输入更紧凑，匹配表格行密度 */
+.role-select {
+  padding: 7px 10px;
+  font-size: 13px;
+  border-radius: 3px;
+}
+
 /* ===== Grammar Card ===== */
 .grammar-card {
   margin-top: 12px;
@@ -873,6 +940,12 @@ tr:hover td {
   background: var(--sheet);
   box-shadow: var(--shadow-print-sm);
   overflow: hidden;
+  transition: box-shadow var(--transition);
+}
+
+/* 展开态：投影升一档，示意该卡片当前"被拿起" */
+.grammar-card.expanded {
+  box-shadow: var(--shadow-print);
 }
 
 .grammar-card-header {
@@ -979,7 +1052,7 @@ tr:hover td {
 .daily-progress-bar {
   background: var(--accent);
   height: 100%;
-  transition: width 0.4s ease;
+  transition: width 0.35s var(--ease-out);
   min-width: 0;
 }
 
@@ -1021,6 +1094,17 @@ tr:hover td {
 .daily-word-chip.daily-word-done {
   background: var(--ok-soft);
   border-color: var(--ok);
+}
+
+/* 默写中（JS 会输出 daily-word-dictating）：虚线墨框表示"进行中"的中间态 */
+.daily-word-chip.daily-word-dictating {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: var(--ink-2);
+  border-style: dashed;
+}
+
+.daily-word-chip.daily-word-dictating .daily-word-status {
+  color: var(--ink-2);
 }
 
 .daily-word-chip.daily-word-mastered {
@@ -1202,7 +1286,7 @@ tr:hover td {
 .weekly-bar {
   width: 14px;
   border-radius: 2px 2px 0 0;
-  transition: height 0.5s ease;
+  transition: height 0.45s var(--ease-out);
   min-height: 2px;
 }
 
@@ -1294,12 +1378,12 @@ tr:hover td {
    动效
    ============================================================ */
 
-/* 刊头阶梯入场：100ms × --stagger，700ms 缓出 */
+/* 刊头阶梯入场：80ms × --stagger，550ms 强缓出 */
 [data-animate] {
   opacity: 0;
-  transform: translateY(14px);
-  animation: rise 0.7s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
-  animation-delay: calc(var(--stagger, 0) * 100ms);
+  transform: translateY(12px);
+  animation: rise 0.55s var(--ease-out) forwards;
+  animation-delay: calc(var(--stagger, 0) * 80ms);
 }
 
 @keyframes rise {
@@ -1309,48 +1393,54 @@ tr:hover td {
   }
 }
 
-/* JS 切换类（原 effects.css 职责，并入主样式） */
+/* JS 切换类（原 effects.css 职责，并入主样式）：进入一律 ease-out */
 .tab-content {
-  animation: tab-in 0.3s ease both;
+  animation: tab-in var(--dur-enter) var(--ease-out) both;
 }
 
 @keyframes tab-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
 }
 
 .panel-show {
-  animation: tab-in 0.3s ease both;
+  animation: tab-in var(--dur-enter) var(--ease-out) both;
 }
 
 .panel-hide {
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--dur-ui) ease;
 }
 
 .auth-crossfade-enter {
-  animation: tab-in 0.3s ease both;
+  animation: tab-in var(--dur-enter) var(--ease-out) both;
+}
+
+/* 答案揭晓：轻上浮入场（hidden 摘除时 animation 重放） */
+.quiz-answer {
+  animation: tab-in var(--dur-ui) var(--ease-out) both;
 }
 
 .word-slide-left {
-  animation: word-l 0.3s ease;
+  animation: word-l var(--dur-enter) var(--ease-out);
 }
 
 .word-slide-right {
-  animation: word-r 0.3s ease;
+  animation: word-r var(--dur-enter) var(--ease-out);
 }
 
 @keyframes word-l {
-  from { opacity: 0; transform: translateX(18px); }
+  from { opacity: 0; transform: translateX(16px); }
   to   { opacity: 1; transform: none; }
 }
 
 @keyframes word-r {
-  from { opacity: 0; transform: translateX(-18px); }
+  from { opacity: 0; transform: translateX(-16px); }
   to   { opacity: 1; transform: none; }
 }
 
-/* 语法点详情浮层：fixed 遮罩 + 居中卡片，避免点开时整页滚到底部 */
+/* 语法点详情浮层：fixed 遮罩 + 居中卡片，避免点开时整页滚到底部
+   （modal 居中缩放属例外，不受 popover transform-origin 规则约束） */
 #detail-overlay {
   position: fixed;
   inset: 0;
@@ -1359,9 +1449,10 @@ tr:hover td {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(25, 25, 20, 0.45);
   backdrop-filter: blur(2px);
   overflow-y: auto;
+  animation: overlay-in 180ms ease-out;
 }
 
 #detail-overlay .panel {
@@ -1369,6 +1460,15 @@ tr:hover td {
   max-height: 85vh;
   overflow-y: auto;
   margin: auto;
+  animation: modal-in 240ms var(--ease-out);
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; }
+}
+
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
 }
 
 .hidden {
@@ -1385,8 +1485,11 @@ tr:hover td {
   .tab-content,
   .panel-show,
   .auth-crossfade-enter,
+  .quiz-answer,
   .word-slide-left,
-  .word-slide-right {
+  .word-slide-right,
+  #detail-overlay,
+  #detail-overlay .panel {
     animation: none;
   }
   * {

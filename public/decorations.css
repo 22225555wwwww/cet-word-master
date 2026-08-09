@@ -28,7 +28,7 @@
 .doodle {
   position: absolute;
   color: #191914; /* 主墨色笔触 */
-  opacity: 0.82;
+  opacity: 0.72; /* 克制：退后一步，不与正文争注意力 */
   pointer-events: none;
 }
 
@@ -212,7 +212,7 @@
   height: 14px;
   margin-top: 4px;
   color: #191914;
-  opacity: 0.7;
+  opacity: 0.55;
   pointer-events: none;
 }
 
@@ -241,7 +241,7 @@
   margin-left: 10px;
   vertical-align: -5px;
   color: #db3356; /* 强调朱砂 */
-  opacity: 0.9;
+  opacity: 0.8;
   pointer-events: none;
 }
 
