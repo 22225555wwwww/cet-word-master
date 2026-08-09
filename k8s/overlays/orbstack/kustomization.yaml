@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# OrbStack 本地 k8s overlay：与 Docker daemon 共享镜像存储，
+# 直接把本地构建的 cet-word-master:1.0.0 提供给集群使用（imagePullPolicy: IfNotPresent）。
+# 用法：kubectl apply -k k8s/overlays/orbstack
+#
+# 注意：kustomize 不支持 overlay 位于 base 目录内部（cycle detected），
+# 因此这里逐个引用 base 下的清单文件而非 base 目录本身；
+# 各清单 metadata 均已自带 namespace: cet-word，效果与引用 base 一致。
+# 部署命令（kubectl apply -k 会因路径限制失败，需放开 load restrictor）：
+#   kubectl kustomize --load-restrictor=LoadRestrictionsNone k8s/overlays/orbstack | kubectl apply -f -
+resources:
+  - ../../namespace.yaml
+  - ../../secret.yaml
+  - ../../pvc.yaml
+  - ../../deployment.yaml
+  - ../../service.yaml
+  - ../../ingress.yaml
+
+images:
+  - name: registry.example.com/cet-word-master
+    newName: cet-word-master
+    newTag: 1.0.0

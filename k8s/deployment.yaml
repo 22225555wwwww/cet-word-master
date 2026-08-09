@@ -70,6 +70,10 @@ spec:
             periodSeconds: 20
           securityContext:
             runAsNonRoot: true
+            # 镜像 USER 为符号名 node（uid 1000），kubelet 无法从镜像校验非 root，
+            # 必须显式指定数字 uid/gid，否则报 "has runAsNonRoot and image has non-numeric user"
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
